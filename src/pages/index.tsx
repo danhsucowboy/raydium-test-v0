@@ -18,7 +18,7 @@ const Home: NextPage = (props) => {
   const liquidity_coinUpAmount = useLiquidity((s) => s.coin1Amount)
   const liquidity_coinDownAmount = useLiquidity((s) => s.coin2Amount)
   // const swap_coinSrcAmount = useSwap((s) => s.coin1Amount)
-  // const swap_coinUpAmount = useSwap((s) => s.coin2Amount)
+  // const swap_coinDstAmount = useSwap((s) => s.coin2Amount)
 
   useSwapAmountCalculator()
   // const [coinDownAmount, setCoinDownAmount] = useState<number>(0)
@@ -35,7 +35,7 @@ const Home: NextPage = (props) => {
         coin1Amount: (inputCoinAmount / 2).toString()
       })
       useSwap.setState({
-        coin1Amount: inputCoinAmount / 2
+        coinSrcAmount: inputCoinAmount / 2
       })
     }
     else{
@@ -43,7 +43,7 @@ const Home: NextPage = (props) => {
         coin1Amount: ''
       })
       useSwap.setState({
-        coin1Amount: 0
+        coinSrcAmount: 0
       })
     }
   }, [inputCoinAmount])
