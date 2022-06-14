@@ -4,7 +4,7 @@ import create from 'zustand'
 
 import { Numberish } from '../../types/constants'
 
-// import { SplToken } from '../token/type'
+import { SplToken } from 'applications/token/type'
 
 export type SwapStore = {
   //   directionReversed: boolean // determine pairSide  swap make this to be true
@@ -15,10 +15,10 @@ export type SwapStore = {
   // queryCoin2Mint?: string
   // queryAmmId?: string
 
-  //   coin1?: SplToken
-  //   coin2?: SplToken
-  coin1Amount?: number // Numberish // may with fee and slippage
-  coin2Amount?: number //Numberish // may with fee and slippage
+  coin1?: SplToken
+  coin2?: SplToken
+  coinSrcAmount?: number // Numberish // may with fee and slippage
+  coinDstAmount?: number //Numberish // may with fee and slippage
   //   hasUISwrapped?: boolean // if user swap coin1 and coin2, this will be true
 
   //   focusSide: 'coin1' | 'coin2' // make swap fixed (userInput may change this)
@@ -49,14 +49,10 @@ export type SwapStore = {
 
 export const useSwap = create<SwapStore>((set, get) => ({
   //   directionReversed: false,
-  coin1Amount: 0,
   //   focusSide: 'coin1',
-
   //   priceImpact: 0.09,
-
   //   scrollToInputBox: () => {},
   //   klineData: {},
-
   //   refreshCount: 0,
   //   refreshSwap: () => {
   //     set((s) => ({

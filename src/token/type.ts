@@ -1,4 +1,4 @@
-import { LiquidityVersion } from "applications/liquidity/type"
+import { LiquidityVersion } from "liquidity/type"
 
 export interface NativeTokenInfo {
   readonly symbol: string

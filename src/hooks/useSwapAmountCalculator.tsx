@@ -3,6 +3,19 @@ import { useSwap } from 'applications/swap/useSwap'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Keypair, SystemProgram, Transaction, Connection } from '@solana/web3.js'
 import { Numberish } from 'types/constants'
+import { SplToken } from 'applications/token/type'
+import {Trade} from '../trade/trade'
+
+type SwapCalculatorInfo = {
+  executionPrice: ReturnType<typeof Trade['getBestAmountOut']>['executionPrice']
+  currentPrice: ReturnType<typeof Trade['getBestAmountOut']>['currentPrice']
+  priceImpact: ReturnType<typeof Trade['getBestAmountOut']>['priceImpact']
+  routes: ReturnType<typeof Trade['getBestAmountOut']>['routes']
+  routeType: ReturnType<typeof Trade['getBestAmountOut']>['routeType']
+  fee: ReturnType<typeof Trade['getBestAmountOut']>['fee']
+  swapable: boolean
+  info: { amountOut: string; minAmountOut: string } | { amountIn: string; maxAmountIn: string }
+}
 
 export const useSwapAmountCalculator = () => {
   const { connection } = useConnection()
@@ -26,7 +39,6 @@ export const useSwapAmountCalculator = () => {
     }
   }, [coinUpAmount, connection, publicKey])
 }
-
 
 async function calculatePairTokenAmount({
     upCoin,
