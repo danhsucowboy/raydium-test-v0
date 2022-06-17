@@ -44,3 +44,28 @@ export interface HydratedTokenJsonInfo {
     [key in 'coingeckoId' | 'website' | 'whitepaper']?: string
   }
 }
+
+export interface RaydiumTokenListJsonInfo {
+  name: string
+  timestamp: string
+  version: { major: number; minor: number; patch: number }
+  official: TokenJson[]
+  unOfficial: TokenJson[]
+  blacklist: HexAddress[]
+}
+
+export interface RaydiumDevTokenListJsonInfo {
+  name: string
+  timestamp: string
+  tokens: TokenJson[]
+}
+
+export interface TokenListFetchConfigItemWithMethods {
+  url: SrcAddress
+  name: string
+}
+
+export interface TokenListFetchConfigItem {
+  url: SrcAddress
+  name: string
+}

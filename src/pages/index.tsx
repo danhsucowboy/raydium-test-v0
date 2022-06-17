@@ -1,52 +1,66 @@
 import type { NextPage } from 'next'
 import { useEffect, useState } from 'react'
 import { ChevronsDown, Plus } from 'react-feather'
-import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { Keypair, SystemProgram, Transaction } from '@solana/web3.js';
-import { useSwap } from 'applications/swap/useSwap';
-import useLiquidity from 'applications/liquidity/useLiquidity';
-import { useSwapAmountCalculator } from 'hooks/useSwapAmountCalculator';
+import { WalletNotConnectedError } from '@solana/wallet-adapter-base'
+import { useConnection, useWallet } from '@solana/wallet-adapter-react'
+import { Keypair, SystemProgram, Transaction } from '@solana/web3.js'
+import { useZap } from 'applications/zap/useZap'
+import useLiquidity from 'applications/liquidity/useLiquidity'
+import { useSwapAmountCalculator } from 'hooks/useSwapAmountCalculator'
+import useInitCoinFiller from 'hooks/useInitCoinFiller'
+import { useLpTokenMethodsLoad } from 'hooks/useLpTokenMethodsLoad'
+import useTokenListsLoader from 'hooks/useTokenListsLoader'
+import { Connection, PublicKey, TokenAmount } from '@solana/web3.js'
+import { GetStructureSchema, publicKey, struct, u32, u64, u8 } from '../marshmallow'
+import useLiquidityInfoLoader from 'applications/liquidity/useLiquidityInfoLoader'
 
 const Home: NextPage = (props) => {
-  const {connection} = useConnection()
-  const { publicKey, sendTransaction } = useWallet();
+  const { connection } = useConnection()
+  const { publicKey, sendTransaction } = useWallet()
   const [inputCoinAmount, setInputCoinAmount] = useState<number>(0)
   const [coinUp, setCoinUp] = useState('SOL')
   const [coinDown, setCoinDown] = useState('RAY')
   // const [coinUpAmount, setCoinUpAmount] = useState<number>(0)
-  const liquidity_coinUpAmount = useLiquidity((s) => s.coin1Amount)
-  const liquidity_coinDownAmount = useLiquidity((s) => s.coin2Amount)
-  // const swap_coinSrcAmount = useSwap((s) => s.coin1Amount)
-  // const swap_coinDstAmount = useSwap((s) => s.coin2Amount)
 
+  const coin1 = useZap((s) => s.coin1)
+  const coin2 = useZap((s) => s.coin2)
+  const liquidity_coinUpAmount = useZap((s) => s.coinLiquidityUpAmount)
+  const liquidity_coinDownAmount = useZap((s) => s.coinLiquidityDownAmount)
+  const swap_coinSrcAmount = useZap((s) => s.coinSwapSrcAmount)
+  const swap_coinDstAmount = useZap((s) => s.coinSwapDstAmount)
+
+  useLiquidityInfoLoader()
+
+  // useLpTokenMethodsLoad()
+  // useTokenListsLoader()
+  useInitCoinFiller()
   useSwapAmountCalculator()
   // const [coinDownAmount, setCoinDownAmount] = useState<number>(0)
 
-  // useEffect(() => {
-  //   console.log('connection', connection)
-  //   console.log('publicKey', publicKey)
+  useEffect(() => {
+    console.log('swap_coinSrcAmount', swap_coinSrcAmount)
+    console.log('swap_coinDstAmount', swap_coinDstAmount)
 
-  // },[connection, publicKey])
+  },[swap_coinSrcAmount, swap_coinDstAmount])
 
   useEffect(() => {
     if (inputCoinAmount > 0) {
-      useLiquidity.setState({
-        coin1Amount: (inputCoinAmount / 2).toString()
+      useZap.setState({
+        coinSwapSrcAmount: inputCoinAmount / 2,
+        coinLiquidityUpAmount: (inputCoinAmount / 2).toString(),
       })
-      useSwap.setState({
-        coinSrcAmount: inputCoinAmount / 2
-      })
-    }
-    else{
-      useLiquidity.setState({
-        coin1Amount: ''
-      })
-      useSwap.setState({
-        coinSrcAmount: 0
+    } else {
+      useZap.setState({
+        coinSwapSrcAmount: 0,
+        coinLiquidityUpAmount: '',
       })
     }
   }, [inputCoinAmount])
+
+  const handleZap = async () => {
+    const tokenIn = coin1
+    const tokenOut = coin2
+  }
 
   return (
     <div className="flex justify-center items-start mt-28 w-full h-full">
@@ -80,7 +94,9 @@ const Home: NextPage = (props) => {
             value={liquidity_coinDownAmount ? liquidity_coinDownAmount : ''}
           />
         </div>
-        <button className="w-2/3 h-10 mt-4 border-2 border-blue-500 bg-blue-500 rounded-md">ZAP</button>
+        <button className="w-2/3 h-10 mt-4 border-2 border-blue-500 bg-blue-500 rounded-md" onClick={handleZap}>
+          ZAP
+        </button>
       </div>
     </div>
   )

@@ -1,6 +1,21 @@
-import { LiquidityPoolKeys, LiquidityPoolInfo } from 'liquidity/liquidity'
+import { LiquidityPoolKeys, LiquidityPoolInfo } from 'liquidity'
+import { CurrencyAmount, TokenAmount } from 'entity/amount'
+import { Currency, Token } from 'entity/currency'
+import { Percent } from 'entity/percent'
+import { Price } from 'entity/price'
+import { ZERO } from 'entity/constant'
+import { Liquidity } from 'liquidity'
+import { Route } from 'route'
+
+export type TradeSource = "amm" | "serum" | "stable";
 
 const defaultRoutes = ['amm', 'serum', 'route']
+export type RouteType = 'amm' | 'serum' | 'route'
+
+export interface RouteInfo {
+  source: TradeSource
+  keys: LiquidityPoolKeys
+}
 
 export interface AmmSource {
   poolKeys: LiquidityPoolKeys

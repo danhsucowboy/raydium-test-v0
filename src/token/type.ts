@@ -42,3 +42,22 @@ export type LpTokens = {
 } & {
   [T in string]: LpTokenInfo
 }
+
+/* ================= json file ================= */
+export interface SplTokenJsonInfo {
+  readonly symbol: string;
+  readonly name: string;
+  readonly mint: string;
+  readonly decimals: number;
+  readonly extensions: Extensions;
+}
+
+export interface LpTokenJsonInfo {
+  readonly symbol: string;
+  readonly name: string;
+  readonly mint: string;
+  readonly base: string;
+  readonly quote: string;
+  readonly decimals: number;
+  readonly version: LiquidityVersion;
+}

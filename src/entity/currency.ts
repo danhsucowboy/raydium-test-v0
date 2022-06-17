@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
 import { PublicKey } from "@solana/web3.js";
-import { PublicKeyish, validateAndParsePublicKey } from "@raydium-io/raydium-sdk";
+import { PublicKeyish, validateAndParsePublicKey } from "types/constants";
 
 import { SOL } from "../token";
 
