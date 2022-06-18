@@ -5,7 +5,7 @@ import { Currency, Token } from 'entity/currency'
 import { Percent } from 'entity/percent'
 import { Price } from 'entity/price'
 import { ZERO } from 'entity/constant'
-import { Liquidity, SwapSide } from 'liquidity'
+import { Liquidity, SwapSide, LiquiditySide } from 'liquidity'
 import { Route } from 'route'
 import { TokenAccount, UnsignedTransactionAndSigners } from 'base'
 
@@ -47,6 +47,25 @@ export interface TradeTransactionParams {
   }
 }
 
+export interface ZapTransactionParams {
+  connection: Connection
+  routes: RouteInfo[]
+  routeType: RouteType
+  userKeys: {
+    tokenAccounts: TokenAccount[]
+    owner: PublicKey
+    payer?: PublicKey
+  }
+  swap_amountIn: CurrencyAmount | TokenAmount
+  swap_amountOut: CurrencyAmount | TokenAmount
+  addLiquidity_amountInA: CurrencyAmount | TokenAmount
+  swap_fixedSide: SwapSide
+  addLiquidity_fixedSide: LiquiditySide
+  config?: {
+    bypassAssociatedCheck?: boolean
+  }
+}
+
 export interface GetBestAmountOutParams {
   pools?: AmmSource[]
   markets?: SerumSource[]
@@ -68,6 +87,70 @@ export class Trade {
       }
     }
     return grouped
+  }
+
+  static async makeZapTransaction(params: ZapTransactionParams) {
+    const {
+      connection,
+      routes,
+      routeType,
+      userKeys,
+      swap_amountIn,
+      swap_amountOut,
+      addLiquidity_amountInA,
+      swap_fixedSide,
+      addLiquidity_fixedSide,
+      config,
+    } = params
+
+    let setupTransaction: UnsignedTransactionAndSigners | null = null
+    let tradeTransaction: UnsignedTransactionAndSigners | null = null
+
+    if (routeType === 'amm') {
+      console.log('check amm')
+
+      const { keys } = routes[0]
+
+      const { transaction, signers } = await Liquidity.makeZapTransaction({
+        connection,
+        poolKeys: keys,
+        userKeys,
+        swap_amountIn,
+        swap_amountOut,
+        addLiquidity_amountInA,
+        swap_fixedSide,
+        addLiquidity_fixedSide,
+        config,
+      })
+
+      tradeTransaction = { transaction, signers }
+    }
+    // else if (routeType === 'route') {
+
+    //   const [from, to] = routes
+    //   const { keys: fromPoolKeys } = from
+    //   const { keys: toPoolKeys } = to
+
+    //   const { setupTransaction: _setupTransaction, swapTransaction: _swapTransaction } =
+    //     await Route.makeSwapTransaction({
+    //       connection,
+    //       fromPoolKeys,
+    //       toPoolKeys,
+    //       userKeys,
+    //       amountIn,
+    //       amountOut,
+    //       fixedSide,
+    //       config,
+    //     })
+
+    //   setupTransaction = _setupTransaction
+    //   tradeTransaction = _swapTransaction
+    // }
+
+    return {
+      setupTransaction,
+      tradeTransaction,
+    }
   }
 
   static async makeTradeTransaction(params: TradeTransactionParams) {
@@ -92,9 +175,7 @@ export class Trade {
       })
 
       tradeTransaction = { transaction, signers }
-    } 
-    else if (routeType === 'route') {
-
+    } else if (routeType === 'route') {
       const [from, to] = routes
       const { keys: fromPoolKeys } = from
       const { keys: toPoolKeys } = to
@@ -118,6 +199,59 @@ export class Trade {
     return {
       setupTransaction,
       tradeTransaction,
+    }
+  }
+
+  static async makeZapTransaction_v1(params: ZapTransactionParams) {
+    const {
+      connection,
+      routes,
+      routeType,
+      userKeys,
+      swap_amountIn,
+      swap_amountOut,
+      addLiquidity_amountInA,
+      swap_fixedSide,
+      addLiquidity_fixedSide,
+      config,
+    } = params
+
+    // let setupTransaction: UnsignedTransactionAndSigners | null = null
+    // let tradeTransaction: UnsignedTransactionAndSigners | null = null
+    let tradeTransactions: Record<string, UnsignedTransactionAndSigners> = {}
+
+    if (routeType === 'amm') {
+      console.log('check amm')
+
+      const { keys } = routes[0]
+
+      const { transaction: swapTransaction, signers: swapSigner } = await Liquidity.makeSwapTransaction({
+        connection,
+        poolKeys: keys,
+        userKeys,
+        amountIn: swap_amountIn,
+        amountOut: swap_amountOut,
+        fixedSide: swap_fixedSide,
+        config,
+      })
+
+      const { transaction: addTransaciton, signers: addSigner } = await Liquidity.makeAddLiquidityTransaction({
+        connection,
+        poolKeys: keys,
+        userKeys,
+        amountInA: addLiquidity_amountInA,
+        amountInB: swap_amountOut,
+        fixedSide: addLiquidity_fixedSide,
+      })
+
+      tradeTransactions = {
+        swap: { transaction: swapTransaction, signers: swapSigner },
+        add: { transaction: addTransaciton, signers: addSigner },
+      }
+    }
+
+    return {
+      tradeTransactions,
     }
   }
 

@@ -73,6 +73,7 @@ export type ZapStore = {
   currentSdkParsedInfo: SDKParsedLiquidityInfo | undefined // auto parse info in {@link useLiquidityAuto}
   currentHydratedInfo: HydratedLiquidityInfo | undefined // auto parse info in {@link useLiquidityAuto}
 
+  ammId: string | undefined
   //   hasUISwrapped?: boolean // if user swap coin1 and coin2, this will be true
 
   //   focusSide: 'coin1' | 'coin2' // make swap fixed (userInput may change this)

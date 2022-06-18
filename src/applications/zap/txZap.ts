@@ -3,7 +3,7 @@ import { Trade } from 'trade'
 import assert from 'assert'
 import asyncMap from 'functions/asyncMap'
 import { toTokenAmount } from 'functions/format/toTokenAmount'
-import { gt } from 'functions/numberish/compare' 
+import { gt } from 'functions/numberish/compare'
 import { toString } from 'functions/numberish/toString'
 
 import { loadTransaction } from '../txTools/createTransaction'
@@ -14,7 +14,7 @@ import { useZap } from './useZap'
 import { deUITokenAmount, toUITokenAmount } from '../token/utils/quantumSOL'
 import { shakeUndifindedItem } from 'functions/arrayMethods'
 
-export default function txSwap() {
+export default function txZap() {
   return handleMultiTx(async ({ transactionCollector, baseUtils: { connection, owner } }) => {
     const { checkWalletHasEnoughBalance, tokenAccountRawInfos } = useWallet.getState()
     const {
@@ -22,13 +22,19 @@ export default function txSwap() {
       coin2,
       coinSwapSrcAmount,
       coinSwapDstAmount,
+      coinLiquidityUpAmount,
+      coinLiquidityDownAmount,
       routes,
       // focusSide,
       routeType,
       // directionReversed,
       minReceived,
-      maxSpent
+      maxSpent,
+      jsonInfos,
+      currentJsonInfo,
     } = useZap.getState()
+
+    //swap
 
     const upCoin = coin1
     // although info is included in routes, still need upCoinAmount to pop friendly feedback
@@ -48,43 +54,76 @@ export default function txSwap() {
     const upCoinTokenAmount = toTokenAmount(upCoin, upCoinAmount, { alreadyDecimaled: true })
     const downCoinTokenAmount = toTokenAmount(downCoin, downCoinAmount, { alreadyDecimaled: true })
 
+    //add liquidity
+    const targetJsonInfo = currentJsonInfo
+    const liquidity_coinTokenAmount = toTokenAmount(coin1, coinLiquidityUpAmount, { alreadyDecimaled: true })
+    const liquidity_coin2TokenAmount = toTokenAmount(coin2, downCoinAmount, { alreadyDecimaled: true })
     // assert(checkWalletHasEnoughBalance(upCoinTokenAmount), `not enough ${upCoin.symbol}`)
 
     assert(routeType, 'accidently routeType is undefined')
-    const { setupTransaction, tradeTransaction } = await Trade.makeTradeTransaction({
+    // const { tradeTransaction } = await Trade.makeZapTransaction_v1({
+    //   connection,
+    //   routes,
+    //   routeType,
+    //   swap_fixedSide: 'in', // TODO: currently  only fixed in
+    //   addLiquidity_fixedSide: 'b', // TODO: currently  only fixed in
+    //   userKeys: { tokenAccounts: tokenAccountRawInfos, owner },
+    //   swap_amountIn: deUITokenAmount(upCoinTokenAmount), // TODO: currently  only fixed upper side
+    //   swap_amountOut: deUITokenAmount(toTokenAmount(downCoin, minReceived, { alreadyDecimaled: true })),
+    //   addLiquidity_amountInA: deUITokenAmount(liquidity_coinTokenAmount),
+    // })
+
+    const { tradeTransactions } = await Trade.makeZapTransaction_v1({
       connection,
       routes,
       routeType,
-      fixedSide: 'in', // TODO: currently  only fixed in
+      swap_fixedSide: 'in', // TODO: currently  only fixed in
+      addLiquidity_fixedSide: 'b', // TODO: currently  only fixed in
       userKeys: { tokenAccounts: tokenAccountRawInfos, owner },
-      amountIn: deUITokenAmount(upCoinTokenAmount), // TODO: currently  only fixed upper side
-      amountOut: deUITokenAmount(toTokenAmount(downCoin, minReceived, { alreadyDecimaled: true }))
+      swap_amountIn: deUITokenAmount(upCoinTokenAmount), // TODO: currently  only fixed upper side
+      swap_amountOut: deUITokenAmount(toTokenAmount(downCoin, minReceived, { alreadyDecimaled: true })),
+      addLiquidity_amountInA: deUITokenAmount(liquidity_coinTokenAmount),
     })
 
-    console.log('setupTransaction',setupTransaction)
-    console.log('tradeTransaction',tradeTransaction)
+    // console.log('setupTransaction', setupTransaction)
+    console.log('tradeTransaction', tradeTransactions)
 
     // console.log('trade check')
-    const signedTransactions = shakeUndifindedItem(
-      await asyncMap([setupTransaction, tradeTransaction], (merged) => {
-        if (!merged) return
-        const { transaction, signers } = merged
-        return loadTransaction({ transaction: transaction, signers })
-      })
-    )
+    // const signedTransactions = shakeUndifindedItem(
+    //   await asyncMap([setupTransaction, tradeTransaction], (merged) => {
+    //     if (!merged) return
+    //     const { transaction, signers } = merged
+    //     return loadTransaction({ transaction: transaction, signers })
+    //   })
+    // )
     // console.log('trade check 2')
 
-    for (const signedTransaction of signedTransactions) {
-      transactionCollector.add(signedTransaction, {
-        txHistoryInfo: {
-          title: 'Swap',
-          description: `Swap ${toString(upCoinAmount)} ${upCoin.symbol} to ${toString(minReceived || maxSpent)} ${
-            downCoin.symbol
-          }`
-        }
-      })
-    }
-    // console.log('trade check 3')
+    // for (const signedTransaction of signedTransactions) {
+    //   transactionCollector.add(signedTransaction, {
+    //     txHistoryInfo: {
+    //       title: 'Swap',
+    //       description: `Swap ${toString(upCoinAmount)} ${upCoin.symbol} to ${toString(minReceived || maxSpent)} ${
+    //         downCoin.symbol
+    //       }`,
+    //     },
+    //   })
+    // }
 
+    transactionCollector.add(await loadTransaction(tradeTransactions.swap), {
+      txHistoryInfo: {
+        title: 'Swap',
+        description: `Swap ${toString(upCoinAmount)} ${upCoin.symbol} to ${toString(minReceived || maxSpent)} ${
+          downCoin.symbol
+        }`,
+      },
+    })
+
+    transactionCollector.add(await loadTransaction(tradeTransactions.add), {
+      txHistoryInfo: {
+        title: 'Add liquidity',
+        description: `Add ${toString(coinLiquidityUpAmount)} ${coin1.symbol} and ${toString(downCoinAmount)} ${coin2.symbol}`
+      }
+    })
+    // console.log('trade check 3')
   })
 }

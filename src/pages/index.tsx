@@ -20,13 +20,16 @@ import txZap from 'applications/zap/txZap'
 import { useSlippageTolerenceSyncer } from 'applications/appSettings/initializationHooks'
 import useTokenAccountsRefresher from 'applications/wallet/feature/useTokenAccountsRefresher'
 import { useWalletAccountChangeListeners } from 'applications/wallet/feature/useWalletAccountChangeListeners'
+import useLpTokensLoader from 'applications/token/feature/useLpTokensLoader'
+import useLiquidityAmmSelector from 'applications/liquidity/useLiquidityAmmSelector'
+import useLiquidityAmountCalculator from 'applications/liquidity/useLiquidityAmountCalculator'
 
 const Home: NextPage = (props) => {
   const { connection } = useConnection()
   const { publicKey, sendTransaction } = useWallet()
   const [inputCoinAmount, setInputCoinAmount] = useState<number>(0)
-  const [coinUp, setCoinUp] = useState('SOL')
-  const [coinDown, setCoinDown] = useState('RAY')
+  const [coinPredictSwap, setCoinPredictSwap] = useState('RAY')
+  const [coinPredictAddLiquidy, setCoinPredictAddLiquidy] = useState('SOL')
   // const [coinUpAmount, setCoinUpAmount] = useState<number>(0)
 
   const coin1 = useZap((s) => s.coin1)
@@ -48,9 +51,12 @@ const Home: NextPage = (props) => {
   useWalletAccountChangeListeners()
   // useLpTokenMethodsLoad()
   useTokenListsLoader()
+  useLpTokensLoader()
   useTokenMintAutoRecord()
   useInitCoinFiller()
   useSwapAmountCalculator()
+  useLiquidityAmmSelector()
+  useLiquidityAmountCalculator()
   // const [coinDownAmount, setCoinDownAmount] = useState<number>(0)
 
   // useEffect(() => {
@@ -62,13 +68,13 @@ const Home: NextPage = (props) => {
   useEffect(() => {
     if (inputCoinAmount > 0) {
       useZap.setState({
-        coinSwapSrcAmount: inputCoinAmount / 2,
-        coinLiquidityUpAmount: (inputCoinAmount / 2).toString(),
+        coinSwapSrcAmount: inputCoinAmount * 0.48,
+        // coinLiquidityUpAmount: (inputCoinAmount / 2).toString(),
       })
     } else {
       useZap.setState({
         coinSwapSrcAmount: 0,
-        coinLiquidityUpAmount: '',
+        // coinLiquidityUpAmount: '',
       })
     }
   }, [inputCoinAmount])
@@ -94,24 +100,24 @@ const Home: NextPage = (props) => {
         </div>
         <ChevronsDown />
         <div id="down" className="w-2/3 flex justify-between items-center">
-          <label className="mr-4 text-2xl">{coinUp}</label>
+          <label className="mr-4 text-2xl">{coinPredictSwap}</label>
           <input
             type="number"
             className="border-2 border-slate-200 rounded-md h-12 text-black text-center bg-white"
             disabled
             // value={liquidity_coinUpAmount ? liquidity_coinUpAmount : ''}
-            value={swap_coinSrcAmount ? swap_coinSrcAmount.toString() : ''}
+            value={swap_coinDstAmount ? swap_coinDstAmount.toString() : ''}
           />
         </div>
         <Plus />
         <div id="down" className="w-2/3 flex justify-between items-center">
-          <label className="mr-4 text-2xl">{coinDown}</label>
+          <label className="mr-4 text-2xl">{coinPredictAddLiquidy}</label>
           <input
             type="number"
             className="border-2 border-slate-200 rounded-md h-12 text-black text-center bg-white"
             disabled
-            // value={liquidity_coinDownAmount ? liquidity_coinDownAmount : ''}
-            value={swap_coinDstAmount ? swap_coinDstAmount.toString() : ''}
+            value={liquidity_coinUpAmount ? liquidity_coinUpAmount : ''}
+            // value={swap_coinDstAmount ? swap_coinDstAmount.toString() : ''}
           />
         </div>
         <button className="w-2/3 h-10 mt-4 border-2 border-blue-500 bg-blue-500 rounded-md" onClick={txZap}>

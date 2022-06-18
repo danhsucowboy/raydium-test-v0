@@ -113,8 +113,10 @@ export function useSwapAmountCalculator() {
           maxSpent: undefined,
           swapable,
           routeType,
-          ...{ coinSwapDstAmount: amountOut },
+          ...{ coinSwapDstAmount: amountOut, coinLiquidityDownAmount: amountOut },
         })
+
+
       }
       // else {
       //   const { routes, priceImpact, executionPrice, currentPrice, swapable, routeType, fee } = calcResult ?? {}
