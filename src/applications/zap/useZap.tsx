@@ -1,7 +1,5 @@
 import create from 'zustand'
 
-// import { Numberish } from '../../types/constants'
-
 import { SplToken } from 'applications/token/type'
 
 import { LiquidityPoolJsonInfo as LiquidityJsonInfo } from 'liquidity/type'
@@ -12,11 +10,21 @@ import { Numberish } from 'types/constants'
 import { Price } from 'entity/price'
 import { RouteInfo, RouteType } from 'trade'
 import { PublicKeyish } from 'common/pubkey'
-import { RAYMint } from 'applications/token/utils/wellknownToken.config'
+import { WSOLMint } from 'applications/token/utils/quantumSOL'
+import {
+  RAYMint,
+  USDCMint,
+  mSOLMint,
+  PAIMint,
+  stSOLMint,
+  USDHMint,
+  USDTMint,
+} from 'applications/token/utils/wellknownToken.config'
 import toPubString from 'functions/toMintString'
 import { gte } from 'functions/numberish/compare'
 import { div } from 'functions/numberish/operations'
 import { toDataMint } from 'applications/token/utils/quantumSOL'
+import { HydratedLiquidityInfo } from 'applications/liquidity/type'
 
 export type ZapStore = {
   //   directionReversed: boolean // determine pairSide  swap make this to be true
@@ -46,6 +54,7 @@ export type ZapStore = {
    *  additionally add 'SDK parsed data' (BN, PublicKey, etc.)
    */
   sdkParsedInfos: SDKParsedLiquidityInfo[] // auto parse info in {@link useLiquid
+  hydratedInfos: HydratedLiquidityInfo[] // auto parse info in {@link useLiquidityAuto}
 
   findLiquidityInfoByTokenMint: (
     coin1Mint: PublicKeyish | undefined,
@@ -56,28 +65,36 @@ export type ZapStore = {
     routeRelated: LiquidityJsonInfo[]
   }>
 
+  /********************** exhibition panel **********************/
+  userExhibitionLiquidityIds: string[]
+
+  /********************** main panel (coin pair panel) **********************/
+  currentJsonInfo: LiquidityJsonInfo | undefined
+  currentSdkParsedInfo: SDKParsedLiquidityInfo | undefined // auto parse info in {@link useLiquidityAuto}
+  currentHydratedInfo: HydratedLiquidityInfo | undefined // auto parse info in {@link useLiquidityAuto}
+
   //   hasUISwrapped?: boolean // if user swap coin1 and coin2, this will be true
 
   //   focusSide: 'coin1' | 'coin2' // make swap fixed (userInput may change this)
 
   /** only exist when maxSpent is undefined */
-    minReceived?: Numberish // min received amount
+  minReceived?: Numberish // min received amount
 
   /** only exist when minReceived is undefined */
-    maxSpent?: Numberish // max received amount
+  maxSpent?: Numberish // max received amount
 
   /** unit: % */
-    priceImpact?: Numberish
-    executionPrice?: Price | null
-    currentPrice?: Price | null // return by SDK, but don't know when to use it
-    routes?: RouteInfo[]
-    routeType?: RouteType
-    fee?: CurrencyAmount[] // by SDK
-    swapable?: boolean
-    // scrollToInputBox: () => void
-    // klineData: {
-    //   [marketId: string]: { priceData: number[]; updateTime: number }
-    // }
+  priceImpact?: Numberish
+  executionPrice?: Price | null
+  currentPrice?: Price | null // return by SDK, but don't know when to use it
+  routes?: RouteInfo[]
+  routeType?: RouteType
+  fee?: CurrencyAmount[] // by SDK
+  swapable?: boolean
+  // scrollToInputBox: () => void
+  // klineData: {
+  //   [marketId: string]: { priceData: number[]; updateTime: number }
+  // }
 
   // just for trigger refresh
   refreshCount: number
@@ -115,7 +132,6 @@ export const useZap = create<ZapStore>((set, get) => ({
       // stSOLMint,
       // USDHMint,
       // USDTMint,
-      // ETHMint
     ].map(toPubString)
     const candidateTokenMints = routeMiddleMints.concat([mint1, mint2])
     const onlyRouteMints = routeMiddleMints.filter((routeMint) => ![mint1, mint2].includes(routeMint))
@@ -169,7 +185,7 @@ export const useZap = create<ZapStore>((set, get) => ({
 
   //   directionReversed: false,
   //   focusSide: 'coin1',
-    priceImpact: 0.09,
+  priceImpact: 0.09,
   //   scrollToInputBox: () => {},
   //   klineData: {},
   refreshCount: 0,

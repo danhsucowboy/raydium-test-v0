@@ -87,7 +87,22 @@ export class Base {
 
     const ata = await Spl.getAssociatedTokenAccount({ mint, owner });
 
-    if (!tokenAccount || (side === "out" && !ata.equals(tokenAccount) && !bypassAssociatedCheck)) {
+    if (Token.WSOL.mint.equals(mint)) {
+      const newTokenAccount = await Spl.insertCreateWrappedNativeAccountInstructions({
+        connection,
+        owner,
+        payer,
+        instructions: frontInstructions,
+        signers,
+        amount,
+      });
+      // if no endInstructions provide, no need to close
+      if (endInstructions) {
+        endInstructions.push(Spl.makeCloseAccountInstruction({ tokenAccount: newTokenAccount, owner, payer }));
+      }
+
+      return newTokenAccount;
+    } else if (!tokenAccount || (side === "out" && !ata.equals(tokenAccount) && !bypassAssociatedCheck)) {
       frontInstructions.push(
         Spl.makeCreateAssociatedTokenAccountInstruction({
           mint,

@@ -4,7 +4,6 @@ import { jsonInfo2PoolKeys } from 'common/convert-json'
 import { Liquidity } from 'liquidity'
 import { Trade } from 'trade'
 import { Connection } from '@solana/web3.js'
-import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 
 import { shakeUndifindedItem } from 'functions/arrayMethods'
 import toPubString from 'functions/toMintString'
@@ -14,21 +13,21 @@ import useAsyncEffect from './useAsyncEffect'
 import { HexAddress, Numberish } from 'types/constants'
 
 import useAppSettings from 'applications/appSettings/useAppSettings'
-// import useConnection from '../connection/useConnection'
+import useConnection from 'applications/connection/useConnection'
 import { SDKParsedLiquidityInfo } from 'applications/liquidity/type'
-// import useLiquidity from '../liquidity/useLiquidity'
 import sdkParseJsonLiquidityInfo from 'applications/liquidity/sdkParseJsonLiquidityInfo'
 import { SplToken } from 'applications/token/type'
 import { deUIToken, deUITokenAmount, toUITokenAmount } from 'applications/token/utils/quantumSOL'
 
 import { useZap } from 'applications/zap/useZap'
 import { useDebugValue, useEffect } from 'react'
+import useWallet from 'applications/wallet/useWallet'
 import { eq } from 'functions/numberish/compare'
 
 export function useSwapAmountCalculator() {
   const { pathname } = useRouter()
 
-  const { connection } = useConnection()
+  const connection = useConnection((s) => s.connection)
   const coin1 = useZap((s) => s.coin1)
   const coin2 = useZap((s) => s.coin2)
   const userCoin1Amount = useZap((s) => s.coinSwapSrcAmount)
@@ -37,7 +36,7 @@ export function useSwapAmountCalculator() {
   // const directionReversed = useSwap((s) => s.directionReversed)
   // const focusSide = directionReversed ? 'coin2' : 'coin1' // temporary focus side is always up, due to swap route's `Trade.getBestAmountIn()` is not ready
   const slippageTolerance = useAppSettings((s) => s.slippageTolerance)
-  // const connected = useWallet((s) => s.connected)
+  const connected = useWallet((s) => s.connected)
 
   /** for swap is always from up to down, up/down is easier to calc */
   const upCoin = coin1
@@ -69,9 +68,9 @@ export function useSwapAmountCalculator() {
       return
     }
 
-    console.log('upCoin: ', upCoin)
-    console.log('downCoin: ', downCoin)
-    console.log('connection: ', connection)
+    // console.log('upCoin: ', upCoin)
+    // console.log('downCoin: ', downCoin)
+    // console.log('connection: ', connection)
 
     const focusDirectionSide = 'up'
 
@@ -86,6 +85,8 @@ export function useSwapAmountCalculator() {
         slippageTolerance,
       })
       // for calculatePairTokenAmount is async, result maybe droped. if that, just stop it
+      // console.log('calcResult: ', calcResult)
+
       const resultStillFresh = (() => {
         const currentUpCoinAmount = useZap.getState().coinSwapSrcAmount || '0'
         const currentDownCoinAmount = useZap.getState().coinSwapDstAmount || '0'
@@ -96,8 +97,12 @@ export function useSwapAmountCalculator() {
       if (!resultStillFresh) return
 
       if (focusDirectionSide === 'up') {
+        // console.log('calcResult', calcResult)
         const { routes, priceImpact, executionPrice, currentPrice, swapable, routeType, fee } = calcResult ?? {}
         const { amountOut, minAmountOut } = (calcResult?.info ?? {}) as { amountOut?: string; minAmountOut?: string }
+        // console.log('amountOut: ', amountOut)
+        // console.log('minAmountOut: ', minAmountOut)
+
         useZap.setState({
           fee,
           routes,
@@ -181,22 +186,38 @@ async function calculatePairTokenAmount({
   const upCoinTokenAmount = toTokenAmount(upCoin, upCoinAmount, { alreadyDecimaled: true })
   const downCoinTokenAmount = toTokenAmount(downCoin, downCoinAmount, { alreadyDecimaled: true })
 
+  // console.log('upCoinTokenAmount: ', upCoinTokenAmount)
+  // console.log('downCoinTokenAmount: ', downCoinTokenAmount)
+
   const { routeRelated: jsonInfos } = await useZap.getState().findLiquidityInfoByTokenMint(upCoin.mint, downCoin.mint)
+
+  // console.log('jsonInfos: ', jsonInfos)
 
   if (jsonInfos.length) {
     const key = jsonInfos.map((jsonInfo) => jsonInfo.id).join('-')
-    const sdkParsedInfos = sdkParsedInfoCache.has(key)
-      ? sdkParsedInfoCache.get(key)!
-      : await (async () => {
-          const sdkParsed = await sdkParseJsonLiquidityInfo(jsonInfos, connection)
-          sdkParsedInfoCache.set(key, sdkParsed)
-          return sdkParsed
-        })()
+    const sdkParsedInfos = await (async () => {
+      // console.log('check-1')
+
+      const sdkParsed = await sdkParseJsonLiquidityInfo(jsonInfos, connection)
+      // console.log('sdkParsed: ', sdkParsed)
+
+      sdkParsedInfoCache.set(key, sdkParsed)
+      return sdkParsed
+    })()
+
+    // console.log('sdkParsedInfoCache.get(key)!: ', sdkParsedInfoCache.get(key)!)
+    // console.log('sdkParsedInfos: ', sdkParsedInfos)
 
     const pools = jsonInfos.map((jsonInfo, idx) => ({
       poolKeys: jsonInfo2PoolKeys(jsonInfo),
       poolInfo: sdkParsedInfos[idx],
     }))
+
+    // console.log('pools: ', pools)
+    // console.log('deUIToken(downCoin): ', deUIToken(downCoin))
+    // console.log('deUITokenAmount(upCoinTokenAmount): ', deUITokenAmount(upCoinTokenAmount))
+    // console.log('toPercent(slippageTolerance): ', toPercent(slippageTolerance))
+
 
     const { amountOut, minAmountOut, executionPrice, currentPrice, priceImpact, routes, routeType, fee } =
       Trade.getBestAmountOut({
@@ -205,16 +226,8 @@ async function calculatePairTokenAmount({
         amountIn: deUITokenAmount(upCoinTokenAmount),
         slippage: toPercent(slippageTolerance),
       })
-    // console.log('{ amountOut, minAmountOut, executionPrice, currentPrice, priceImpact, routes, routeType, fee }: ', {
-    //   amountOut,
-    //   minAmountOut,
-    //   executionPrice,
-    //   currentPrice,
-    //   priceImpact,
-    //   routes,
-    //   routeType,
-    //   fee
-    // })
+      // console.log('amountOut: ', toUITokenAmount(amountOut).toExact())
+      // console.log('minAmountOut: ', toUITokenAmount(minAmountOut).toExact())
 
     const sdkParsedInfoMap = new Map(sdkParsedInfos.map((info) => [toPubString(info.id), info]))
     const choosedSdkParsedInfos = shakeUndifindedItem(

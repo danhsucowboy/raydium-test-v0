@@ -12,7 +12,7 @@ import useWallet from '../wallet/useWallet'
 
 import { useZap } from './useZap'
 import { deUITokenAmount, toUITokenAmount } from '../token/utils/quantumSOL'
-// import { shakeUndifindedItem } from 'functions/arrayMethods'
+import { shakeUndifindedItem } from 'functions/arrayMethods'
 
 export default function txSwap() {
   return handleMultiTx(async ({ transactionCollector, baseUtils: { connection, owner } }) => {
@@ -20,23 +20,23 @@ export default function txSwap() {
     const {
       coin1,
       coin2,
-      coin1Amount,
-      coin2Amount,
+      coinSwapSrcAmount,
+      coinSwapDstAmount,
       routes,
-      focusSide,
+      // focusSide,
       routeType,
-      directionReversed,
+      // directionReversed,
       minReceived,
       maxSpent
     } = useZap.getState()
 
-    const upCoin = directionReversed ? coin2 : coin1
+    const upCoin = coin1
     // although info is included in routes, still need upCoinAmount to pop friendly feedback
-    const upCoinAmount = (directionReversed ? coin2Amount : coin1Amount) || '0'
+    const upCoinAmount = coinSwapSrcAmount || '0'
 
-    const downCoin = directionReversed ? coin1 : coin2
+    const downCoin = coin2
     // although info is included in routes, still need downCoinAmount to pop friendly feedback
-    const downCoinAmount = (directionReversed ? coin1Amount : coin2Amount) || '0'
+    const downCoinAmount = coinSwapDstAmount || '0'
 
     assert(upCoinAmount && gt(upCoinAmount, 0), 'should input upCoin amount larger than 0')
     assert(downCoinAmount && gt(downCoinAmount, 0), 'should input downCoin amount larger than 0')
@@ -48,7 +48,7 @@ export default function txSwap() {
     const upCoinTokenAmount = toTokenAmount(upCoin, upCoinAmount, { alreadyDecimaled: true })
     const downCoinTokenAmount = toTokenAmount(downCoin, downCoinAmount, { alreadyDecimaled: true })
 
-    assert(checkWalletHasEnoughBalance(upCoinTokenAmount), `not enough ${upCoin.symbol}`)
+    // assert(checkWalletHasEnoughBalance(upCoinTokenAmount), `not enough ${upCoin.symbol}`)
 
     assert(routeType, 'accidently routeType is undefined')
     const { setupTransaction, tradeTransaction } = await Trade.makeTradeTransaction({
@@ -60,13 +60,20 @@ export default function txSwap() {
       amountIn: deUITokenAmount(upCoinTokenAmount), // TODO: currently  only fixed upper side
       amountOut: deUITokenAmount(toTokenAmount(downCoin, minReceived, { alreadyDecimaled: true }))
     })
-    const signedTransactions = (
+
+    console.log('setupTransaction',setupTransaction)
+    console.log('tradeTransaction',tradeTransaction)
+
+    // console.log('trade check')
+    const signedTransactions = shakeUndifindedItem(
       await asyncMap([setupTransaction, tradeTransaction], (merged) => {
         if (!merged) return
         const { transaction, signers } = merged
         return loadTransaction({ transaction: transaction, signers })
       })
     )
+    // console.log('trade check 2')
+
     for (const signedTransaction of signedTransactions) {
       transactionCollector.add(signedTransaction, {
         txHistoryInfo: {
@@ -77,5 +84,7 @@ export default function txSwap() {
         }
       })
     }
+    // console.log('trade check 3')
+
   })
 }

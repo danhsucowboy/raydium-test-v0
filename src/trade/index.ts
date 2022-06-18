@@ -1,13 +1,15 @@
+import { Connection, PublicKey } from '@solana/web3.js'
 import { LiquidityPoolKeys, LiquidityPoolInfo } from 'liquidity'
 import { CurrencyAmount, TokenAmount } from 'entity/amount'
 import { Currency, Token } from 'entity/currency'
 import { Percent } from 'entity/percent'
 import { Price } from 'entity/price'
 import { ZERO } from 'entity/constant'
-import { Liquidity } from 'liquidity'
+import { Liquidity, SwapSide } from 'liquidity'
 import { Route } from 'route'
+import { TokenAccount, UnsignedTransactionAndSigners } from 'base'
 
-export type TradeSource = "amm" | "serum" | "stable";
+export type TradeSource = 'amm' | 'serum' | 'stable'
 
 const defaultRoutes = ['amm', 'serum', 'route']
 export type RouteType = 'amm' | 'serum' | 'route'
@@ -26,6 +28,23 @@ export interface SerumSource {
   marketKeys: []
   bids: []
   asks: []
+}
+
+export interface TradeTransactionParams {
+  connection: Connection
+  routes: RouteInfo[]
+  routeType: RouteType
+  userKeys: {
+    tokenAccounts: TokenAccount[]
+    owner: PublicKey
+    payer?: PublicKey
+  }
+  amountIn: CurrencyAmount | TokenAmount
+  amountOut: CurrencyAmount | TokenAmount
+  fixedSide: SwapSide
+  config?: {
+    bypassAssociatedCheck?: boolean
+  }
 }
 
 export interface GetBestAmountOutParams {
@@ -51,6 +70,57 @@ export class Trade {
     return grouped
   }
 
+  static async makeTradeTransaction(params: TradeTransactionParams) {
+    const { connection, routes, routeType, userKeys, amountIn, amountOut, fixedSide, config } = params
+
+    let setupTransaction: UnsignedTransactionAndSigners | null = null
+    let tradeTransaction: UnsignedTransactionAndSigners | null = null
+
+    if (routeType === 'amm') {
+      console.log('check amm')
+
+      const { keys } = routes[0]
+
+      const { transaction, signers } = await Liquidity.makeSwapTransaction({
+        connection,
+        poolKeys: keys,
+        userKeys,
+        amountIn,
+        amountOut,
+        fixedSide,
+        config,
+      })
+
+      tradeTransaction = { transaction, signers }
+    } 
+    else if (routeType === 'route') {
+
+      const [from, to] = routes
+      const { keys: fromPoolKeys } = from
+      const { keys: toPoolKeys } = to
+
+      const { setupTransaction: _setupTransaction, swapTransaction: _swapTransaction } =
+        await Route.makeSwapTransaction({
+          connection,
+          fromPoolKeys,
+          toPoolKeys,
+          userKeys,
+          amountIn,
+          amountOut,
+          fixedSide,
+          config,
+        })
+
+      setupTransaction = _setupTransaction
+      tradeTransaction = _swapTransaction
+    }
+
+    return {
+      setupTransaction,
+      tradeTransaction,
+    }
+  }
+
   /**
    * Get best amount out
    *
@@ -60,6 +130,7 @@ export class Trade {
     const _pools = pools || []
     const _markets = markets || []
     const _features = features || defaultRoutes
+
     // logger.debug('features:', _features)
 
     // logger.assertArgument(
@@ -93,6 +164,7 @@ export class Trade {
       for (const { poolKeys, poolInfo } of _pools) {
         // * if currencies not match with pool, will throw error
         try {
+          // console.log('check amm')
           const { amountOut, minAmountOut, currentPrice, executionPrice, priceImpact, fee } =
             Liquidity.computeAmountOut({
               poolKeys,
@@ -101,6 +173,9 @@ export class Trade {
               currencyOut,
               slippage,
             })
+
+          // console.log('amm amountOut: ', toUITokenAmount(amountOut).toExact())
+          // console.log('amm minAmountOut: ', toUITokenAmount(minAmountOut).toExact())
 
           if (amountOut.gt(_amountOut)) {
             routes = [
@@ -118,6 +193,7 @@ export class Trade {
             _fee = [fee]
           }
         } catch (error) {
+          // console.log('check amm error', error)
           //
         }
       }
@@ -136,6 +212,7 @@ export class Trade {
 
         // * if currencies not match with pool, will throw error
         try {
+          // console.log('check route')
           const { amountOut, minAmountOut, executionPrice, priceImpact, fee } = Route.computeAmountOut({
             fromPoolKeys,
             toPoolKeys,
@@ -145,6 +222,9 @@ export class Trade {
             currencyOut,
             slippage,
           })
+
+          // console.log('route amountOut: ', toUITokenAmount(amountOut).toExact())
+          // console.log('route minAmountOut: ', toUITokenAmount(minAmountOut).toExact())
 
           if (amountOut.gt(_amountOut)) {
             routes = [
@@ -166,6 +246,7 @@ export class Trade {
           }
         } catch (error) {
           //
+          // console.log('check route error', error)
         }
       }
     }

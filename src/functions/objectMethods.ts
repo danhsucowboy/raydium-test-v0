@@ -19,3 +19,13 @@ export function objectMap<T, V>(
   //@ts-expect-error why type error?
   return objectMapEntry(target, ([key, value]) => [key, callbackFn(value, key)])
 }
+
+export function replaceValue<T, K extends keyof T, V extends T[K], NewV>(
+  obj: T,
+  findValue: (value: V, key: K) => boolean,
+  replaceValue: NewV
+): Record<K, V | NewV> {
+  const entries = Object.entries(obj)
+  const newEntries = entries.map(([key, value]) => (findValue(value, key as any) ? [key, replaceValue] : [key, value]))
+  return Object.fromEntries(newEntries)
+}

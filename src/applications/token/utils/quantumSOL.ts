@@ -105,6 +105,31 @@ export const isQuantumSOLVersionWSOL = (token: any) => isQuantumSOL(token) && to
 
 export const isQuantumSOLVersionSOL = (token: any) => isQuantumSOL(token) && token.collapseTo === 'sol'
 
+export const quantumSOLVersionWSOLTokenJsonInfo: QuantumSOLJsonInfo = {
+  isQuantumSOL: true,
+  isLp: false,
+  official: true,
+  mint: toPubString(WSOLMint),
+  decimals: SOLDecimals,
+  collapseTo: 'wsol',
+  symbol: 'WSOL',
+  name: 'Wrapped SOL',
+  icon: `https://img.raydium.io/icon/So11111111111111111111111111111111111111112.png`,
+  extensions: {
+    coingeckoId: 'solana'
+  }
+} as const
+
+export const QuantumSOLVersionWSOL = Object.assign(
+  new Token(
+    quantumSOLVersionWSOLTokenJsonInfo.mint,
+    quantumSOLVersionWSOLTokenJsonInfo.decimals,
+    quantumSOLVersionWSOLTokenJsonInfo.symbol,
+    quantumSOLVersionWSOLTokenJsonInfo.name
+  ),
+  omit(quantumSOLVersionWSOLTokenJsonInfo, ['mint', 'decimals', 'symbol', 'name'])
+) as QuantumSOLToken
+
 export const toQuantumSolAmount = ({
   solRawAmount: solRawAmount,
   wsolRawAmount: wsolRawAmount,

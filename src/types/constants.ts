@@ -2,13 +2,21 @@ import BN from 'bn.js'
 import { PublicKey } from '@solana/web3.js'
 import { Fraction } from 'entity/fraction'
 
+export type ObjectNotArray = { [key: string]: any }
+
+
 export type AnyFn = (...args: any[]) => any
+export type AnyObj = { [key: string]: any }
+
 
 export type Primitive = boolean | number | string | bigint
 export type StringNumber = string | number
 export type HexAddress = string
 export type SrcAddress = string
 export type MayPromise<T> = T | Promise<T>
+export type MayFunction<T, Params extends any[] = []> = T | ((...params: Params) => T)
+export type DateInfo = string | number | Date
+
 
 export type PublicKeyish = HexAddress | PublicKey
 export type Numberish = number | string | bigint | Fraction | BN

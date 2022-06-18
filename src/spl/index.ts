@@ -11,6 +11,8 @@ import { BigNumberish, parseBigNumberish } from "entity/bignumber";
 import { u64 } from "../marshmallow";
 
 import { SPL_ACCOUNT_LAYOUT } from "./layout";
+import { WSOL } from "token";
+
 
 // https://github.com/solana-labs/solana-program-library/tree/master/token/js/client
 export class Spl {
@@ -37,6 +39,100 @@ export class Spl {
       owner,
       payer,
     );
+  }
+
+    // https://github.com/solana-labs/solana-program-library/blob/master/token/js/client/token.js
+    static async makeCreateWrappedNativeAccountInstructions({
+      connection,
+      owner,
+      payer,
+      amount,
+      // baseRentExemption,
+      commitment,
+    }: {
+      connection: Connection;
+      owner: PublicKey;
+      payer: PublicKey;
+      amount: BigNumberish;
+      // baseRentExemption?: number;
+      commitment?: Commitment;
+    }) {
+      const instructions: TransactionInstruction[] = [];
+  
+      // Allocate memory for the account
+      // baseRentExemption = getMinimumBalanceForRentExemption size is 0
+      // -X POST -H "Content-Type: application/json" -d '{"jsonrpc":"2.0", "id":1, "method":"getMinimumBalanceForRentExemption", "params":[0]}'
+      // baseRentExemption = perByteRentExemption * 128
+      // balanceNeeded = baseRentExemption / 128 * (dataSize + 128)
+      const balanceNeeded = await connection.getMinimumBalanceForRentExemption(SPL_ACCOUNT_LAYOUT.span, commitment);
+  
+      // Create a new account
+      const lamports = parseBigNumberish(amount).add(new BN(balanceNeeded));
+      const newAccount = Keypair.generate();
+      instructions.push(
+        SystemProgram.createAccount({
+          fromPubkey: payer,
+          newAccountPubkey: newAccount.publicKey,
+          lamports: lamports.toNumber(),
+          space: SPL_ACCOUNT_LAYOUT.span,
+          programId: TOKEN_PROGRAM_ID,
+        }),
+      );
+  
+      // * merge this instruction into SystemProgram.createAccount
+      // * will save transaction size ~17(441-424) bytes
+      // Send lamports to it (these will be wrapped into native tokens by the token program)
+      // instructions.push(
+      //   SystemProgram.transfer({
+      //     fromPubkey: payer,
+      //     toPubkey: newAccount.publicKey,
+      //     lamports: parseBigNumberish(amount).toNumber(),
+      //   }),
+      // );
+  
+      // Assign the new account to the native token mint.
+      // the account will be initialized with a balance equal to the native token balance.
+      // (i.e. amount)
+      instructions.push(
+        this.makeInitAccountInstruction({
+          mint: validateAndParsePublicKey(WSOL.mint),
+          tokenAccount: newAccount.publicKey,
+          owner,
+        }),
+      );
+  
+      return { newAccount, instructions };
+    }
+
+  static async insertCreateWrappedNativeAccountInstructions({
+    connection,
+    owner,
+    payer,
+    amount,
+    instructions,
+    signers,
+    commitment,
+  }: {
+    connection: Connection;
+    owner: PublicKey;
+    payer: PublicKey;
+    amount: BigNumberish;
+    instructions: TransactionInstruction[];
+    signers: Signer[];
+    commitment?: Commitment;
+  }) {
+    const { newAccount, instructions: newInstructions } = await this.makeCreateWrappedNativeAccountInstructions({
+      connection,
+      owner,
+      payer,
+      amount,
+      commitment,
+    });
+
+    instructions.push(...newInstructions);
+    signers.push(newAccount);
+
+    return newAccount.publicKey;
   }
 
   static makeInitMintInstruction({

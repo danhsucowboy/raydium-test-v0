@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 
 import { Token } from 'entity/currency'
+import { WSOL } from 'token'
 
 // import { shakeUndifindedItem, unifyItem } from '@/functions/arrayMethods
 import { asyncMapAllSettled } from 'functions/asyncMap'
@@ -8,7 +9,8 @@ import jFetch from 'functions/jFetch'
 import listToMap from 'functions/listToMap'
 import toPubString from 'functions/toMintString'
 import { HexAddress, PublicKeyish, SrcAddress } from 'types/constants'
-import { objectMap } from 'functions/objectMethods'
+import { objectMap, replaceValue } from 'functions/objectMethods'
+
 import {
   RaydiumDevTokenListJsonInfo,
   RaydiumTokenListJsonInfo,
@@ -23,13 +25,13 @@ import useToken, {
   SOLANA_TOKEN_LIST_NAME,
 } from 'applications/token/useToken'
 
-import {
-  QuantumSOL,
-  QuantumSOLVersionSOL,
-  SOLUrlMint,
-} from 'applications/token/utils/quantumSOL'
+import { QuantumSOL, QuantumSOLVersionSOL, QuantumSOLVersionWSOL, SOLUrlMint, WSOLMint } from 'applications/token/utils/quantumSOL'
 
-import { isRaydiumDevTokenListName, rawTokenListConfigs } from '../applications/token/utils/rawTokenLists.config'
+import {
+  isRaydiumMainnetTokenListName,
+  isRaydiumDevTokenListName,
+  rawTokenListConfigs,
+} from '../applications/token/utils/rawTokenLists.config'
 
 export default function useTokenListsLoader() {
   useEffect(() => {
@@ -38,7 +40,6 @@ export default function useTokenListsLoader() {
 }
 
 // function uniqueItems<T>(items: T[], mapper?: (old: S)=>):T
-
 async function fetchTokenLists(rawListConfigs: TokenListFetchConfigItem[]): Promise<{
   devMints: string[]
   unOfficialMints: string[]
@@ -55,12 +56,12 @@ async function fetchTokenLists(rawListConfigs: TokenListFetchConfigItem[]): Prom
   console.info('tokenList start fetching')
   await asyncMapAllSettled(rawListConfigs, async (raw) => {
     const response = await jFetch<RaydiumTokenListJsonInfo | RaydiumDevTokenListJsonInfo>(raw.url)
-    // if (isRaydiumMainnetTokenListName(response)) {
-    //   unOfficialMints.push(...response.unOfficial.map(({ mint }) => mint))
-    //   officialMints.push(...response.official.map(({ mint }) => mint))
-    //   tokens.push(...response.official, ...response.unOfficial)
-    //   blacklist.push(...response.blacklist)
-    // }
+    if (isRaydiumMainnetTokenListName(response)) {
+      unOfficialMints.push(...response.unOfficial.map(({ mint }) => mint))
+      officialMints.push(...response.official.map(({ mint }) => mint))
+      tokens.push(...response.official, ...response.unOfficial)
+      blacklist.push(...response.blacklist)
+    }
     if (isRaydiumDevTokenListName(response)) {
       devMints.push(...response.tokens.map(({ mint }) => mint))
       tokens.push(...response.tokens)
@@ -72,20 +73,20 @@ async function fetchTokenLists(rawListConfigs: TokenListFetchConfigItem[]): Prom
   return { devMints, unOfficialMints, officialMints, tokens, blacklist }
 }
 
-// async function fetchTokenIconInfoList() {
-//   return jFetch<Record<HexAddress, SrcAddress>>('/custom-token-icon-list.json')
-// }
+async function fetchTokenIconInfoList() {
+  return jFetch<Record<HexAddress, SrcAddress>>('/custom-token-icon-list.json')
+}
 
 export function createSplToken(
-  info: Partial<TokenJson> & { mint: HexAddress; decimals: number }
-  // customTokenIcons?: Record<string, SrcAddress>
+  info: Partial<TokenJson> & { mint: HexAddress; decimals: number },
+  customTokenIcons?: Record<string, SrcAddress>
 ): SplToken {
   const { mint, symbol, name = symbol, decimals, ...rest } = info
   // TODO: recordPubString(token.mint)
   const splToken = Object.assign(new Token(mint, decimals, symbol, name), { icon: '', extensions: {} }, rest)
-  // if (customTokenIcons?.[mint]) {
-  //   splToken.icon = customTokenIcons[mint] ?? ''
-  // }
+  if (customTokenIcons?.[mint]) {
+    splToken.icon = customTokenIcons[mint] ?? ''
+  }
   return splToken
 }
 export function toSplTokenInfo(splToken: SplToken): TokenJson {
@@ -95,19 +96,19 @@ export function toSplTokenInfo(splToken: SplToken): TokenJson {
     mint: toPubString(splToken.mint),
     decimals: splToken.decimals,
     extensions: splToken.extensions,
-    icon: splToken.icon,
+    icon: splToken.icon
   }
 }
 
 async function loadTokens() {
-  // const customTokenIcons = await fetchTokenIconInfoList()
+  const customTokenIcons = await fetchTokenIconInfoList()
 
   const {
     devMints,
     unOfficialMints,
     officialMints,
     tokens: allTokens,
-    blacklist: _blacklist,
+    blacklist: _blacklist
   } = await fetchTokenLists(rawTokenListConfigs)
   const blacklist = new Set(_blacklist)
   useToken.setState((s) => ({
@@ -117,19 +118,19 @@ async function loadTokens() {
 
       [RAYDIUM_MAINNET_TOKEN_LIST_NAME]: {
         ...s.tokenListSettings[RAYDIUM_MAINNET_TOKEN_LIST_NAME],
-        mints: new Set(officialMints),
+        mints: new Set(officialMints)
       },
 
       [SOLANA_TOKEN_LIST_NAME]: {
         ...s.tokenListSettings[SOLANA_TOKEN_LIST_NAME],
-        mints: new Set(unOfficialMints),
+        mints: new Set(unOfficialMints)
       },
 
       [RAYDIUM_DEV_TOKEN_LIST_NAME]: {
         ...s.tokenListSettings[RAYDIUM_DEV_TOKEN_LIST_NAME],
-        mints: new Set(devMints),
-      },
-    },
+        mints: new Set(devMints)
+      }
+    }
   }))
 
   const unsortedTokenInfos = allTokens
@@ -155,22 +156,22 @@ async function loadTokens() {
     (i) => i.mint
   )
 
-  const pureTokens = objectMap(splTokenJsonInfos, (tokenJsonInfo) => createSplToken(tokenJsonInfo))
+  const pureTokens = objectMap(splTokenJsonInfos, (tokenJsonInfo) => createSplToken(tokenJsonInfo, customTokenIcons))
 
   const tokens = { ...pureTokens, [toPubString(QuantumSOL.mint)]: QuantumSOL }
 
-  // const verboseTokens = [
-  //   QuantumSOLVersionSOL,
-  //   ...Object.values(replaceValue(pureTokens, (v, k) => k === String(WSOL.mint), QuantumSOLVersionWSOL)),
-  // ]
+  const verboseTokens = [
+    QuantumSOLVersionSOL,
+    ...Object.values(replaceValue(pureTokens, (v, k) => k === String(WSOL.mint), QuantumSOLVersionWSOL))
+  ]
 
-  // useToken.setState((s) => ({
-  //   canFlaggedTokenMints: new Set(
-  //     Object.values(tokens)
-  //       .filter((token) => !s.tokenListSettings[RAYDIUM_MAINNET_TOKEN_LIST_NAME].mints?.has(String(token.mint)))
-  //       .map((token) => String(token.mint))
-  //   ),
-  // }))
+  useToken.setState((s) => ({
+    canFlaggedTokenMints: new Set(
+      Object.values(tokens)
+        .filter((token) => !s.tokenListSettings[RAYDIUM_MAINNET_TOKEN_LIST_NAME].mints?.has(String(token.mint)))
+        .map((token) => String(token.mint))
+    )
+  }))
 
   /** NOTE -  getToken place 1 */
   /** exact mode: 'so111111112' will be QSOL-WSOL 'sol' will be QSOL-SOL */
@@ -178,9 +179,9 @@ async function loadTokens() {
     if (String(mint) === SOLUrlMint) {
       return QuantumSOLVersionSOL
     }
-    // if (String(mint) === String(WSOLMint) && options?.exact) {
-    //   return QuantumSOLVersionWSOL
-    // }
+    if (String(mint) === String(WSOLMint) && options?.exact) {
+      return QuantumSOLVersionWSOL
+    }
     return tokens[String(mint)]
   }
 
@@ -192,8 +193,8 @@ async function loadTokens() {
     tokenJsonInfos: listToMap(allTokens, (i) => i.mint),
     tokens,
     pureTokens,
-    // verboseTokens,
+    verboseTokens,
     getToken,
-    getPureToken,
+    getPureToken
   })
 }

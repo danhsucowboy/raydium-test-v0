@@ -348,8 +348,8 @@ export class Route extends Base {
     }
 
     // handle currency in & out (convert SOL to WSOL)
-    const tokenIn = amountIn instanceof TokenAmount && amountIn.token
-    const tokenOut = amountOut instanceof TokenAmount && amountOut.token
+    const tokenIn = amountIn instanceof TokenAmount ? amountIn.token : Token.WSOL
+    const tokenOut = amountOut instanceof TokenAmount ? amountOut.token : Token.WSOL
 
     const tokenAccountIn = await this._selectTokenAccount({
       tokenAccounts,
@@ -471,25 +471,9 @@ export class Route extends Base {
   }: RouteComputeAmountOutParams) {
     const { swap: fromPoolSwapEnabled } = Liquidity.getEnabledFeatures(fromPoolInfo)
     const { swap: toPoolSwapEnabled } = Liquidity.getEnabledFeatures(toPoolInfo)
-    // logger.assertArgument(fromPoolSwapEnabled && toPoolSwapEnabled, 'pools swap not enabled', 'pools', {
-    //   fromPoolKeys,
-    //   toPoolKeys,
-    //   fromPoolInfo,
-    //   toPoolInfo,
-    // })
 
-    const tokenIn = amountIn instanceof TokenAmount && amountIn.token
-    const tokenOut = currencyOut instanceof Token && currencyOut
-
-    // logger.assertArgument(
-    //   Liquidity.includesToken(tokenIn, fromPoolKeys) && Liquidity.includesToken(tokenOut, toPoolKeys),
-    //   'pools cannot be routed',
-    //   'pools',
-    //   {
-    //     fromPoolKeys,
-    //     toPoolKeys,
-    //   }
-    // )
+    const tokenIn = amountIn instanceof TokenAmount ? amountIn.token : Token.WSOL
+    const tokenOut = currencyOut instanceof Token ? currencyOut : Token.WSOL
 
     const fromPoolMints = [fromPoolKeys.baseMint.toBase58(), fromPoolKeys.quoteMint.toBase58()]
     const toPoolMints = [toPoolKeys.baseMint.toBase58(), toPoolKeys.quoteMint.toBase58()]

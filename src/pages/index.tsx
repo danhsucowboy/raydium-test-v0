@@ -13,6 +13,13 @@ import useTokenListsLoader from 'hooks/useTokenListsLoader'
 import { Connection, PublicKey, TokenAmount } from '@solana/web3.js'
 import { GetStructureSchema, publicKey, struct, u32, u64, u8 } from '../marshmallow'
 import useLiquidityInfoLoader from 'applications/liquidity/useLiquidityInfoLoader'
+import useConnectionInitialization from 'applications/connection/useConnectionInitialization'
+import { useSyncWithSolanaWallet } from 'applications/wallet/feature/useSyncWithSolanaWallet'
+import useTokenMintAutoRecord from 'applications/token/feature/useTokenFlaggedMintAutoRecorder'
+import txZap from 'applications/zap/txZap'
+import { useSlippageTolerenceSyncer } from 'applications/appSettings/initializationHooks'
+import useTokenAccountsRefresher from 'applications/wallet/feature/useTokenAccountsRefresher'
+import { useWalletAccountChangeListeners } from 'applications/wallet/feature/useWalletAccountChangeListeners'
 
 const Home: NextPage = (props) => {
   const { connection } = useConnection()
@@ -29,19 +36,28 @@ const Home: NextPage = (props) => {
   const swap_coinSrcAmount = useZap((s) => s.coinSwapSrcAmount)
   const swap_coinDstAmount = useZap((s) => s.coinSwapDstAmount)
 
+  useSlippageTolerenceSyncer()
+  // load liquidity info (jsonInfo, sdkParsedInfo, hydratedInfo)
   useLiquidityInfoLoader()
 
+  /********************** connection **********************/
+  useConnectionInitialization()
+  /********************** wallet **********************/
+  useSyncWithSolanaWallet()
+  useTokenAccountsRefresher()
+  useWalletAccountChangeListeners()
   // useLpTokenMethodsLoad()
-  // useTokenListsLoader()
+  useTokenListsLoader()
+  useTokenMintAutoRecord()
   useInitCoinFiller()
   useSwapAmountCalculator()
   // const [coinDownAmount, setCoinDownAmount] = useState<number>(0)
 
-  useEffect(() => {
-    console.log('swap_coinSrcAmount', swap_coinSrcAmount)
-    console.log('swap_coinDstAmount', swap_coinDstAmount)
+  // useEffect(() => {
+  //   console.log('swap_coinSrcAmount', swap_coinSrcAmount)
+  //   console.log('swap_coinDstAmount', swap_coinDstAmount)
 
-  },[swap_coinSrcAmount, swap_coinDstAmount])
+  // },[swap_coinSrcAmount, swap_coinDstAmount])
 
   useEffect(() => {
     if (inputCoinAmount > 0) {
@@ -57,10 +73,10 @@ const Home: NextPage = (props) => {
     }
   }, [inputCoinAmount])
 
-  const handleZap = async () => {
-    const tokenIn = coin1
-    const tokenOut = coin2
-  }
+  // const handleZap = async () => {
+  //   const tokenIn = coin1
+  //   const tokenOut = coin2
+  // }
 
   return (
     <div className="flex justify-center items-start mt-28 w-full h-full">
@@ -69,8 +85,10 @@ const Home: NextPage = (props) => {
           <label className="mr-4 text-2xl">SOL</label>
           <input
             type="number"
+            // pattern="[-+]?[0-9]*[.,]?[0-9]+"
             className="border-2 border-slate-200 rounded-md h-12 text-black text-center"
-            value={inputCoinAmount === 0 ? '' : inputCoinAmount}
+            // value={inputCoinAmount === 0 ? '' : inputCoinAmount}
+            value={inputCoinAmount}
             onChange={(e) => setInputCoinAmount(Number(e.target.value))}
           />
         </div>
@@ -81,7 +99,8 @@ const Home: NextPage = (props) => {
             type="number"
             className="border-2 border-slate-200 rounded-md h-12 text-black text-center bg-white"
             disabled
-            value={liquidity_coinUpAmount ? liquidity_coinUpAmount : ''}
+            // value={liquidity_coinUpAmount ? liquidity_coinUpAmount : ''}
+            value={swap_coinSrcAmount ? swap_coinSrcAmount.toString() : ''}
           />
         </div>
         <Plus />
@@ -91,10 +110,11 @@ const Home: NextPage = (props) => {
             type="number"
             className="border-2 border-slate-200 rounded-md h-12 text-black text-center bg-white"
             disabled
-            value={liquidity_coinDownAmount ? liquidity_coinDownAmount : ''}
+            // value={liquidity_coinDownAmount ? liquidity_coinDownAmount : ''}
+            value={swap_coinDstAmount ? swap_coinDstAmount.toString() : ''}
           />
         </div>
-        <button className="w-2/3 h-10 mt-4 border-2 border-blue-500 bg-blue-500 rounded-md" onClick={handleZap}>
+        <button className="w-2/3 h-10 mt-4 border-2 border-blue-500 bg-blue-500 rounded-md" onClick={txZap}>
           ZAP
         </button>
       </div>

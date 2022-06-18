@@ -222,6 +222,8 @@ export async function simulateMultipleInstruction(
   instructions: TransactionInstruction[],
   keyword: string
 ) {
+  // console.log('check-4')
+
   const feePayer = new PublicKey('RaydiumSimuLateTransaction11111111111111111')
 
   const transactions: Transaction[] = []
@@ -230,14 +232,19 @@ export async function simulateMultipleInstruction(
 
   for (const instruction of instructions) {
     if (forecastTransactionSize([...transaction.instructions, instruction], [feePayer]) > PACKET_DATA_SIZE) {
+      // console.log('check-5-1 transaction', transaction)
       transactions.push(transaction)
       transaction = new Transaction({ feePayer })
       transaction.add(instruction)
     } else {
+      // console.log('check-5-2 instruction', instruction)
+
       transaction.add(instruction)
     }
   }
   if (transaction.instructions.length > 0) {
+    // console.log('check-5-3 transaction', transaction)
+
     transactions.push(transaction)
   }
 
@@ -245,6 +252,7 @@ export async function simulateMultipleInstruction(
 
   try {
     results = await Promise.all(transactions.map((transaction) => connection.simulateTransaction(transaction)))
+    // console.log('simulateMultipleInstruction results', results)
   } catch (error) {
     if (error instanceof Error) {
       throw Error(

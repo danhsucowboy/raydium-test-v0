@@ -32,9 +32,9 @@ export default function useInitCoinFiller() {
     if (!coin1 && toPubString(coin2?.mint) !== toPubString(QuantumSOLVersionSOL.mint)) {
       useZap.setState({ coin1: QuantumSOLVersionSOL })
     }
-    if (!coin2 && toPubString(coin1?.mint) !== toPubString(testETHMint)) {
-      // useZap.setState({ coin2: getToken(RAYMint) })
-      useZap.setState({ coin2: ETHSpl })
+    if (!coin2 && toPubString(coin1?.mint) !== toPubString(RAYMint)) {
+      useZap.setState({ coin2: getToken(RAYMint) })
+      // useZap.setState({ coin2: ETHSpl })
       console.log('coin2 checkout')
     }
   }, [getToken])

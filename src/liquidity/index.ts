@@ -573,8 +573,8 @@ export class Liquidity extends Base {
     }
 
     // handle currency a & b (convert SOL to WSOL)
-    const tokenA = amountInA instanceof TokenAmount && amountInA.token
-    const tokenB = amountInB instanceof TokenAmount && amountInB.token
+    const tokenA = amountInA instanceof TokenAmount ? amountInA.token : Token.WSOL;
+    const tokenB = amountInB instanceof TokenAmount ? amountInB.token : Token.WSOL;
 
     const tokenAccountA = await this._selectTokenAccount({
       tokenAccounts,
@@ -991,18 +991,6 @@ export class Liquidity extends Base {
     const { connection, poolKeys, userKeys, amountIn, amountOut, fixedSide, config } = params
     const { tokenAccounts, owner, payer = owner } = userKeys
 
-    // logger.debug('amountIn:', amountIn)
-    // logger.debug('amountOut:', amountOut)
-    // logger.assertArgument(
-    //   !amountIn.isZero() && !amountOut.isZero(),
-    //   'amounts must greater than zero',
-    //   'currencyAmounts',
-    //   {
-    //     amountIn: amountIn.toFixed(),
-    //     amountOut: amountOut.toFixed(),
-    //   }
-    // )
-
     const { bypassAssociatedCheck } = {
       // default
       ...{ bypassAssociatedCheck: false },
@@ -1011,8 +999,8 @@ export class Liquidity extends Base {
     }
 
     // handle currency in & out (convert SOL to WSOL)
-    const tokenIn = amountIn instanceof TokenAmount && amountIn.token
-    const tokenOut = amountOut instanceof TokenAmount && amountOut.token
+    const tokenIn = amountIn instanceof TokenAmount ? amountIn.token : Token.WSOL
+    const tokenOut = amountOut instanceof TokenAmount ? amountOut.token : Token.WSOL
 
     const tokenAccountIn = await this._selectTokenAccount({
       tokenAccounts,
@@ -1546,10 +1534,13 @@ export class Liquidity extends Base {
     config,
   }: LiquidityFetchMultipleInfoParams): Promise<LiquidityPoolInfo[]> {
     // await initStableModelLayout(connection)
+    // console.log('check-3')
 
     const instructions = pools.map((pool) => this.makeSimulatePoolInfoInstruction({ poolKeys: pool }))
+    // console.log('instructions: ', instructions)
 
     const logs = await simulateMultipleInstruction(connection, instructions, 'GetPoolData')
+    // console.log('logs: ', logs)
 
     const poolsInfo = logs.map((log) => {
       const json = parseSimulateLogToJson(log, 'GetPoolData')
@@ -1715,8 +1706,7 @@ export class Liquidity extends Base {
    * @returns currency amount side is `base` or `quote`
    */
   static _getAmountSide(amount: CurrencyAmount | TokenAmount, poolKeys: LiquidityPoolKeys): AmountSide {
-    const token = amount instanceof TokenAmount && amount.token
-
+    const token = amount instanceof TokenAmount ? amount.token : Token.WSOL
     return this._getTokenSide(token, poolKeys)
   }
 
@@ -1732,9 +1722,8 @@ export class Liquidity extends Base {
     amountB: CurrencyAmount | TokenAmount,
     poolKeys: LiquidityPoolKeys
   ): AmountSide[] {
-    const tokenA = amountA instanceof TokenAmount && amountA.token
-    const tokenB = amountB instanceof TokenAmount && amountB.token
-
+    const tokenA = amountA instanceof TokenAmount ? amountA.token : Token.WSOL
+    const tokenB = amountB instanceof TokenAmount ? amountB.token : Token.WSOL
     return this._getTokensSide(tokenA, tokenB, poolKeys)
   }
 
@@ -1857,39 +1846,25 @@ export class Liquidity extends Base {
         priceImpact: Percent
         fee: CurrencyAmount
       } => {
-    const tokenIn = amountIn instanceof TokenAmount && amountIn.token
-    const tokenOut = currencyOut instanceof Token && currencyOut
-    // logger.assertArgument(
-    //   this.includesToken(tokenIn, poolKeys) && this.includesToken(tokenOut, poolKeys),
-    //   "token not match with pool",
-    //   "poolKeys",
-    //   poolKeys,
-    // );
+    const tokenIn = amountIn instanceof TokenAmount ? amountIn.token : Token.WSOL
+    const tokenOut = currencyOut instanceof Token ? currencyOut : Token.WSOL
+
 
     const { baseReserve, quoteReserve } = poolInfo
-    // logger.debug("baseReserve:", baseReserve.toString());
-    // logger.debug("quoteReserve:", quoteReserve.toString());
 
     const currencyIn = amountIn instanceof TokenAmount ? amountIn.token : amountIn.currency
-    // logger.debug("currencyIn:", currencyIn);
-    // logger.debug("amountIn:", amountIn.toFixed());
-    // logger.debug("currencyOut:", currencyOut);
-    // logger.debug("slippage:", `${slippage.toSignificant()}%`);
+   
 
     const reserves = [baseReserve, quoteReserve]
-
     // input is fixed
     const input = this._getAmountSide(amountIn, poolKeys)
     if (input === 'quote') {
       reserves.reverse()
     }
-    // logger.debug("input side:", input);
 
     const [reserveIn, reserveOut] = reserves
 
-    let currentPrice
-    // if (poolKeys.version === 4) {
-    currentPrice = new Price(currencyIn, reserveIn, currencyOut, reserveOut)
+    let currentPrice = new Price(currencyIn, reserveIn, currencyOut, reserveOut)
     // } else {
     //   const p = getStablePrice(modelData, baseReserve.toNumber(), quoteReserve.toNumber(), false)
     //   if (input === 'quote') currentPrice = new Price(currencyIn, new BN(p * 1e6), currencyOut, new BN(1e6))
@@ -1913,6 +1888,7 @@ export class Liquidity extends Base {
 
       const denominator = reserveIn.add(amountInWithFee)
       amountOutRaw = reserveOut.mul(amountInWithFee).div(denominator)
+
       // } else {
       //   feeRaw = amountInRaw.mul(new BN(2)).div(new BN(10000))
       //   const amountInWithFee = amountInRaw.sub(feeRaw)
@@ -1939,8 +1915,6 @@ export class Liquidity extends Base {
       currencyOut instanceof Token
         ? new TokenAmount(currencyOut, minAmountOutRaw)
         : new CurrencyAmount(currencyOut, minAmountOutRaw)
-    // logger.debug("amountOut:", amountOut.toFixed());
-    // logger.debug("minAmountOut:", minAmountOut.toFixed());
 
     let executionPrice = new Price(currencyIn, amountInRaw.sub(feeRaw), currencyOut, amountOutRaw)
     if (!amountInRaw.isZero() && !amountOutRaw.isZero()) {
