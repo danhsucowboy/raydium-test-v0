@@ -1146,8 +1146,14 @@ export class Liquidity extends Base {
       tokenAccounts,
       mint: addLiquidity_tokenA.mint,
       owner,
+      config: { associatedOnly: false },
     })
-    const addLiquidity_tokenAccountB = swap_tokenAccountOut
+    const addLiquidity_tokenAccountB = await this._selectTokenAccount({
+      tokenAccounts,
+      mint: swap_tokenOut.mint,
+      owner,
+      config: { associatedOnly: false },
+    })
     const lpTokenAccount = await this._selectTokenAccount({
       tokenAccounts,
       mint: lpMint,
@@ -1185,108 +1191,53 @@ export class Liquidity extends Base {
     const endInstructions: TransactionInstruction[] = []
     const signers: Signer[] = []
 
-    const _tokenAccountIn = await this._handleTokenAccount({
+    console.log('_tokenAccountIn')
+    const _tokenAccountIn = await Spl.insertCreateWrappedNativeAccountInstructions({
       connection,
-      side: 'in',
-      amount: amountInRaw,
-      mint: swap_tokenIn.mint,
-      tokenAccount: swap_tokenAccountIn,
       owner,
       payer,
-      frontInstructions,
-      endInstructions,
+      instructions: frontInstructions,
       signers,
-      bypassAssociatedCheck,
-    })
-    const _tokenAccountOut = await this._handleTokenAccount({
-      connection,
-      side: 'out',
-      amount: 0,
-      mint: swap_tokenOut.mint,
-      tokenAccount: swap_tokenAccountOut,
-      owner,
-      payer,
-      frontInstructions,
-      endInstructions,
-      signers,
-      bypassAssociatedCheck,
-    })
-    const _baseTokenAccount = await this._handleTokenAccount({
-      connection,
-      side: 'in',
-      amount: baseAmountRaw,
-      mint: baseToken.mint,
-      tokenAccount: baseTokenAccount,
-      owner,
-      payer,
-      frontInstructions,
-      endInstructions,
-      signers,
-      bypassAssociatedCheck,
-    })
-    const _quoteTokenAccount = await this._handleTokenAccount({
-      connection,
-      side: 'in',
-      amount: quoteAmountRaw,
-      mint: quoteToken.mint,
-      tokenAccount: quoteTokenAccount,
-      owner,
-      payer,
-      frontInstructions,
-      endInstructions,
-      signers,
-      bypassAssociatedCheck,
-    })
-    const _lpTokenAccount = await this._handleTokenAccount({
-      connection,
-      side: 'out',
-      amount: 0,
-      mint: lpMint,
-      tokenAccount: lpTokenAccount,
-      owner,
-      payer,
-      frontInstructions,
-      endInstructions,
-      signers,
-      bypassAssociatedCheck,
-    })
+      amount: amountInRaw.add(quoteAmountRaw),
+    });
+    endInstructions.push(Spl.makeCloseAccountInstruction({ tokenAccount: swap_tokenAccountIn, owner, payer }));
+    
+    // console.log('_quoteTokenAccount')
+    // const _quoteTokenAccount = await Spl.insertCreateWrappedNativeAccountInstructions({
+    //   connection,
+    //   owner,
+    //   payer,
+    //   instructions: frontInstructions,
+    //   signers,
+    //   amount: quoteAmountRaw,
+    // })
 
-    // frontInstructions.push(
-    //   this.makeZapInstruction({
-    //     poolKeys,
-    //     userKeys: {
-    //       tokenAccountIn: _tokenAccountIn,
-    //       tokenAccountOut: _tokenAccountOut,
-    //       baseTokenAccount: _baseTokenAccount,
-    //       quoteTokenAccount: _quoteTokenAccount,
-    //       lpTokenAccount: _lpTokenAccount,
-    //       owner,
-    //     },
-    //     amountIn: amountInRaw,
-    //     amountOut: amountOutRaw,
-    //     baseAmountIn: baseAmountRaw,
-    //     quoteAmountIn: quoteAmountRaw,
-    //     fixedSide: _fixedSide,
-    //   })
-    // )
+    // endInstructions.push(Spl.makeCloseAccountInstruction({ tokenAccount: quoteTokenAccount, owner, payer }))
+    // if no endInstructions
+
+    console.log('Swap In:',amountInRaw.toNumber()/10**9, 'SOL')
+    console.log('Swap Out:',amountOutRaw.toNumber()/10**6, 'RAY')
+    console.log('Add In A:',quoteAmountRaw.toNumber()/10**9, 'SOL')
+    console.log('Add In B:',baseAmountRaw.toNumber()/10**6, 'RAY')
+
 
     frontInstructions.push(
-      // this.makeSwapInstruction({
-      //   poolKeys,
-      //   userKeys: {
-      //     tokenAccountIn: _tokenAccountIn,
-      //     tokenAccountOut: swap_tokenAccountOut,
-      //     owner,
-      //   },
-      //   amountIn: amountInRaw,
-      //   amountOut: amountOutRaw,
-      //   fixedSide: swap_fixedSide,
-      // }),
+      this.makeSwapInstruction({
+        poolKeys,
+        userKeys: {
+          tokenAccountIn: _tokenAccountIn,
+          tokenAccountOut: swap_tokenAccountOut,
+          owner,
+        },
+        amountIn: amountInRaw,
+        amountOut: amountOutRaw,
+        fixedSide: swap_fixedSide,
+      }),
       this.makeAddLiquidityInstruction({
         poolKeys,
         userKeys: {
           baseTokenAccount: baseTokenAccount,
-          quoteTokenAccount: _quoteTokenAccount,
+          quoteTokenAccount: _tokenAccountIn,
           lpTokenAccount: lpTokenAccount,
           owner,
         },
