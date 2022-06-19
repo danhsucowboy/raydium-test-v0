@@ -1183,7 +1183,6 @@ export class Liquidity extends Base {
       else throw Error(`invalid fixedSide: ${addLiquidity_fixedSide}`)
     } else throw Error(`invalid fixedSide: ${addLiquidity_fixedSide}`)
 
-    const [baseToken, quoteToken] = tokens
     const [baseTokenAccount, quoteTokenAccount] = _tokenAccounts
     const [baseAmountRaw, quoteAmountRaw] = rawAmounts
 
@@ -1202,24 +1201,10 @@ export class Liquidity extends Base {
     });
     endInstructions.push(Spl.makeCloseAccountInstruction({ tokenAccount: swap_tokenAccountIn, owner, payer }));
     
-    // console.log('_quoteTokenAccount')
-    // const _quoteTokenAccount = await Spl.insertCreateWrappedNativeAccountInstructions({
-    //   connection,
-    //   owner,
-    //   payer,
-    //   instructions: frontInstructions,
-    //   signers,
-    //   amount: quoteAmountRaw,
-    // })
-
-    // endInstructions.push(Spl.makeCloseAccountInstruction({ tokenAccount: quoteTokenAccount, owner, payer }))
-    // if no endInstructions
-
     console.log('Swap In:',amountInRaw.toNumber()/10**9, 'SOL')
     console.log('Swap Out:',amountOutRaw.toNumber()/10**6, 'RAY')
     console.log('Add In A:',quoteAmountRaw.toNumber()/10**9, 'SOL')
     console.log('Add In B:',baseAmountRaw.toNumber()/10**6, 'RAY')
-
 
     frontInstructions.push(
       this.makeSwapInstruction({
