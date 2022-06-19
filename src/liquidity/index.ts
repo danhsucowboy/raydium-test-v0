@@ -1194,7 +1194,7 @@ export class Liquidity extends Base {
       owner,
       payer,
       frontInstructions,
-      // endInstructions,
+      endInstructions,
       signers,
       bypassAssociatedCheck,
     })
@@ -1207,7 +1207,7 @@ export class Liquidity extends Base {
       owner,
       payer,
       frontInstructions,
-      // endInstructions,
+      endInstructions,
       signers,
       bypassAssociatedCheck,
     })
@@ -1251,225 +1251,43 @@ export class Liquidity extends Base {
       bypassAssociatedCheck,
     })
 
-    frontInstructions.push(
-      this.makeZapInstruction({
-        poolKeys,
-        userKeys: {
-          tokenAccountIn: _tokenAccountIn,
-          tokenAccountOut: _tokenAccountOut,
-          baseTokenAccount: _baseTokenAccount,
-          quoteTokenAccount: _quoteTokenAccount,
-          lpTokenAccount: _lpTokenAccount,
-          owner,
-        },
-        amountIn: amountInRaw,
-        amountOut: amountOutRaw,
-        baseAmountIn: baseAmountRaw,
-        quoteAmountIn: quoteAmountRaw,
-        fixedSide: _fixedSide,
-      })
-    )
-
     // frontInstructions.push(
-    //   this.makeSwapInstruction({
+    //   this.makeZapInstruction({
     //     poolKeys,
     //     userKeys: {
     //       tokenAccountIn: _tokenAccountIn,
     //       tokenAccountOut: _tokenAccountOut,
-    //       owner,
-    //     },
-    //     amountIn: amountInRaw,
-    //     amountOut: amountOutRaw,
-    //     fixedSide: swap_fixedSide,
-    //   }),
-    //   this.makeAddLiquidityInstruction({
-    //     poolKeys,
-    //     userKeys: {
     //       baseTokenAccount: _baseTokenAccount,
     //       quoteTokenAccount: _quoteTokenAccount,
     //       lpTokenAccount: _lpTokenAccount,
     //       owner,
     //     },
+    //     amountIn: amountInRaw,
+    //     amountOut: amountOutRaw,
     //     baseAmountIn: baseAmountRaw,
     //     quoteAmountIn: quoteAmountRaw,
     //     fixedSide: _fixedSide,
     //   })
     // )
 
-    const transaction = new Transaction()
-    transaction.add(...[...frontInstructions, ...endInstructions])
-
-    return { transaction, signers }
-  }
-
-  static async makeZapTransaction_v1(params: LiquidityZapTransactionParams) {
-    const {
-      connection,
-      poolKeys,
-      userKeys,
-      swap_amountIn,
-      swap_amountOut,
-      addLiquidity_amountInA,
-      swap_fixedSide,
-      addLiquidity_fixedSide,
-      config,
-    } = params
-    const addLiquidity_amountInB = swap_amountOut
-    const { lpMint } = poolKeys
-    const { tokenAccounts, owner, payer = owner } = userKeys
-
-    const { bypassAssociatedCheck } = {
-      // default
-      ...{ bypassAssociatedCheck: false },
-      // custom
-      ...config,
-    }
-
-    // handle currency in & out (convert SOL to WSOL)
-    const swap_tokenIn = swap_amountIn instanceof TokenAmount ? swap_amountIn.token : Token.WSOL
-    const swap_tokenOut = swap_amountOut instanceof TokenAmount ? swap_amountOut.token : Token.WSOL
-    const addLiquidity_tokenA =
-      addLiquidity_amountInA instanceof TokenAmount ? addLiquidity_amountInA.token : Token.WSOL
-    const addLiquidity_tokenB = swap_tokenOut
-
-    const swap_tokenAccountIn = await this._selectTokenAccount({
-      tokenAccounts,
-      mint: swap_tokenIn.mint,
-      owner,
-      config: { associatedOnly: false },
-    })
-    const swap_tokenAccountOut = await this._selectTokenAccount({
-      tokenAccounts,
-      mint: swap_tokenOut.mint,
-      owner,
-    })
-    const addLiquidity_tokenAccountA = await this._selectTokenAccount({
-      tokenAccounts,
-      mint: addLiquidity_tokenA.mint,
-      owner,
-    })
-    const addLiquidity_tokenAccountB = swap_tokenAccountOut
-    const lpTokenAccount = await this._selectTokenAccount({
-      tokenAccounts,
-      mint: lpMint,
-      owner,
-    })
-
-    const [amountInRaw, amountOutRaw] = [swap_amountIn.raw, swap_amountOut.raw]
-    const tokens = [addLiquidity_tokenA, addLiquidity_tokenB]
-    const _tokenAccounts = [addLiquidity_tokenAccountA, addLiquidity_tokenAccountB]
-    const rawAmounts = [addLiquidity_amountInA.raw, addLiquidity_amountInB.raw]
-
-    // handle amount a & b and direction
-    const [sideA] = this._getAmountsSide(addLiquidity_amountInA, addLiquidity_amountInB, poolKeys)
-    let _fixedSide: AmountSide = 'base'
-    if (sideA === 'quote') {
-      // reverse
-      tokens.reverse()
-      _tokenAccounts.reverse()
-      rawAmounts.reverse()
-
-      if (addLiquidity_fixedSide === 'a') _fixedSide = 'quote'
-      else if (addLiquidity_fixedSide === 'b') _fixedSide = 'base'
-      else throw Error(`invalid fixedSide: ${addLiquidity_fixedSide}`)
-    } else if (sideA === 'base') {
-      if (addLiquidity_fixedSide === 'a') _fixedSide = 'base'
-      else if (addLiquidity_fixedSide === 'b') _fixedSide = 'quote'
-      else throw Error(`invalid fixedSide: ${addLiquidity_fixedSide}`)
-    } else throw Error(`invalid fixedSide: ${addLiquidity_fixedSide}`)
-
-    const [baseToken, quoteToken] = tokens
-    const [baseTokenAccount, quoteTokenAccount] = _tokenAccounts
-    const [baseAmountRaw, quoteAmountRaw] = rawAmounts
-
-    const frontInstructions: TransactionInstruction[] = []
-    const endInstructions: TransactionInstruction[] = []
-    const signers: Signer[] = []
-
-    const _tokenAccountIn = await this._handleTokenAccount({
-      connection,
-      side: 'in',
-      amount: amountInRaw,
-      mint: swap_tokenIn.mint,
-      tokenAccount: swap_tokenAccountIn,
-      owner,
-      payer,
-      frontInstructions,
-      // endInstructions,
-      signers,
-      bypassAssociatedCheck,
-    })
-    const _tokenAccountOut = await this._handleTokenAccount({
-      connection,
-      side: 'out',
-      amount: 0,
-      mint: swap_tokenOut.mint,
-      tokenAccount: swap_tokenAccountOut,
-      owner,
-      payer,
-      frontInstructions,
-      // endInstructions,
-      signers,
-      bypassAssociatedCheck,
-    })
-    const _baseTokenAccount = await this._handleTokenAccount({
-      connection,
-      side: 'in',
-      amount: baseAmountRaw,
-      mint: baseToken.mint,
-      tokenAccount: baseTokenAccount,
-      owner,
-      payer,
-      frontInstructions,
-      endInstructions,
-      signers,
-      bypassAssociatedCheck,
-    })
-    const _quoteTokenAccount = await this._handleTokenAccount({
-      connection,
-      side: 'in',
-      amount: quoteAmountRaw,
-      mint: quoteToken.mint,
-      tokenAccount: quoteTokenAccount,
-      owner,
-      payer,
-      frontInstructions,
-      endInstructions,
-      signers,
-      bypassAssociatedCheck,
-    })
-    const _lpTokenAccount = await this._handleTokenAccount({
-      connection,
-      side: 'out',
-      amount: 0,
-      mint: lpMint,
-      tokenAccount: lpTokenAccount,
-      owner,
-      payer,
-      frontInstructions,
-      endInstructions,
-      signers,
-      bypassAssociatedCheck,
-    })
-
     frontInstructions.push(
-      this.makeSwapInstruction({
-        poolKeys,
-        userKeys: {
-          tokenAccountIn: _tokenAccountIn,
-          tokenAccountOut: _tokenAccountOut,
-          owner,
-        },
-        amountIn: amountInRaw,
-        amountOut: amountOutRaw,
-        fixedSide: swap_fixedSide,
-      }),
+      // this.makeSwapInstruction({
+      //   poolKeys,
+      //   userKeys: {
+      //     tokenAccountIn: _tokenAccountIn,
+      //     tokenAccountOut: swap_tokenAccountOut,
+      //     owner,
+      //   },
+      //   amountIn: amountInRaw,
+      //   amountOut: amountOutRaw,
+      //   fixedSide: swap_fixedSide,
+      // }),
       this.makeAddLiquidityInstruction({
         poolKeys,
         userKeys: {
-          baseTokenAccount: _baseTokenAccount,
+          baseTokenAccount: baseTokenAccount,
           quoteTokenAccount: _quoteTokenAccount,
-          lpTokenAccount: _lpTokenAccount,
+          lpTokenAccount: lpTokenAccount,
           owner,
         },
         baseAmountIn: baseAmountRaw,

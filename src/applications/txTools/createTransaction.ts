@@ -4,7 +4,9 @@ import { attachRecentBlockhash } from './attachRecentBlockhash'
 
 export const loadTransaction = async (payload: { transaction: Transaction; signers?: Signer[] }) => {
   const { transaction, signers } = payload
+  console.log('trade check 1-2')
   const signedTransaction = await partialSignTransacion(transaction, signers)
+  console.log('trade check 1-3')
   return signedTransaction
 }
 
@@ -42,7 +44,7 @@ export const createTransactionCollector = (defaultRawTransaction?: Transaction):
         rawTransaction.add(...frontInstructions, ...endInstructions.reverse())
       }
       return partialSignTransacion(rawTransaction, innerSigners)
-    }
+    },
   }
 
   return collector
@@ -50,8 +52,14 @@ export const createTransactionCollector = (defaultRawTransaction?: Transaction):
 
 const partialSignTransacion = async (transaction: Transaction, signers?: Signer[]): Promise<Transaction> => {
   if (signers?.length) {
+    console.log('trade check 1-2-1')
     await attachRecentBlockhash(transaction)
+    console.log('trade check 1-2-2',signers)
+    console.log('trade check 1-2-2',transaction)
+
     transaction.partialSign(...signers)
+    console.log('trade check 1-2-3')
+
     return transaction
   }
   return transaction

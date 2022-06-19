@@ -131,6 +131,7 @@ export class Spl {
 
     instructions.push(...newInstructions);
     signers.push(newAccount);
+    // signers.push(newAccount);
 
     return newAccount.publicKey;
   }
