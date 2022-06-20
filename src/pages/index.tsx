@@ -41,7 +41,6 @@ const Home: NextPage = (props) => {
   const userExhibitionLiquidityIds = useZap((s) => s.userExhibitionLiquidityIds)
   const rawBalances = useWallet((s) => s.rawBalances)
 
-
   useSlippageTolerenceSyncer()
   useLiquidityInfoLoader()
 
@@ -85,76 +84,91 @@ const Home: NextPage = (props) => {
 
   return (
     <div className="flex justify-center items-center w-full h-full gap-20">
-      <div className="w-5/12 h-3/4 bg-stone-700 rounded-2xl flex flex-col justify-center items-center gap-8 px-10">
-        <div id="up" className="w-full flex justify-between items-center gap-4">
-          <label className="text-2xl">Zap Input</label>
+      <div className="w-5/12 h-3/4 bg-stone-700 rounded-2xl flex flex-col justify-center items-center gap-4 px-8">
+        <div id="input" className="w-full flex justify-between items-center px-4 mb-4">
+          <label className="w-56 text-2xl">Zap Input</label>
           <input
             type="number"
-            className="border-2 border-slate-200 rounded-md h-12 text-black text-center"
+            className="w-56 border-2 border-slate-200 rounded-md h-12 text-black text-center"
             value={inputCoinAmount}
             onChange={(e) => setInputCoinAmount(Number(e.target.value))}
           />
           <label className="text-2xl">SOL</label>
         </div>
-        <div id="up" className="w-full flex justify-between items-center gap-4">
-          <label className="text-2xl">{`Swap In (${cutRatio * 100}% Input)`}</label>
-          <input
-            type="number"
-            className="border-2 border-slate-200 rounded-md h-12 text-black text-center bg-white"
-            disabled
-            value={swap_coinSrcAmount ? swap_coinSrcAmount.toString() : ''}
-          />
-          <label className="text-2xl">SOL</label>
+        <div className="w-full flex flex-col justify-center items-center gap-4 border-2 border-blue-500 rounded-2xl p-4">
+          <div id="up" className="w-full flex justify-between items-center">
+            <div className="w-56 flex flex-col justify-center items-start">
+              <label className="text-2xl">Swap In</label>
+              <label className="text-md">{`(${cutRatio * 100}% Input)`}</label>
+            </div>
+            <input
+              type="number"
+              className="w-56 border-2 border-gray-500 rounded-md h-12 text-white text-center bg-gray-500"
+              disabled
+              value={swap_coinSrcAmount ? swap_coinSrcAmount.toString() : ''}
+            />
+            <label className="text-2xl">SOL</label>
+          </div>
+          <ChevronsDown />
+          <div id="down" className="w-full flex justify-between items-center">
+            <div className="w-56 flex flex-col justify-center items-start">
+              <label className="text-2xl">Add Liquidity A</label>
+              <label className="text-md">{`(Swap Out)`}</label>
+            </div>
+            <input
+              type="number"
+              className="w-56 border-2 border-gray-500 rounded-md h-12 text-white text-center bg-gray-500"
+              disabled
+              // value={liquidity_coinUpAmount ? liquidity_coinUpAmount : ''}
+              value={swap_coinDstAmount && swap_coinDstAmount > 0 ? swap_coinDstAmount.toString() : ''}
+            />
+            <label className="text-2xl">{coinPredictSwap}</label>
+          </div>
+          <Plus />
+          <div id="down" className="w-full flex justify-between items-center">
+            <div className="w-56 flex flex-col justify-center items-start">
+              <label className="text-2xl">Add Liquidity B</label>
+              <label className="text-md">{`(AmountCalculator Input)`}</label>
+            </div>
+            <input
+              type="number"
+              className="w-56 border-2 border-gray-500 rounded-md h-12 text-white text-center bg-gray-500"
+              disabled
+              value={liquidity_coinUpAmount ? liquidity_coinUpAmount : ''}
+              // value={swap_coinDstAmount ? swap_coinDstAmount.toString() : ''}
+            />
+            <label className="text-2xl">{coinPredictAddLiquidy}</label>
+          </div>
+          <button className="w-2/3 h-10 mt-4 border-2 border-blue-500 bg-blue-500 rounded-md" onClick={txZap}>
+            ZAP
+          </button>
         </div>
-        <ChevronsDown />
-        <div id="down" className="w-full flex justify-between items-center gap-4">
-          <label className="text-2xl">{`Add Liquidity A (Swap Out)`}</label>
-          <input
-            type="number"
-            className="border-2 border-slate-200 rounded-md h-12 text-black text-center bg-white"
-            disabled
-            // value={liquidity_coinUpAmount ? liquidity_coinUpAmount : ''}
-            value={swap_coinDstAmount ? swap_coinDstAmount.toString() : ''}
-          />
-          <label className="text-2xl">{coinPredictSwap}</label>
-        </div>
-        <Plus />
-        <div id="down" className="w-full flex justify-between items-center gap-4">
-          <label className="text-2xl">{`Add Liquidity B (AmountCalculator Input)`}</label>
-          <input
-            type="number"
-            className="border-2 border-slate-200 rounded-md h-12 text-black text-center bg-white"
-            disabled
-            value={liquidity_coinUpAmount ? liquidity_coinUpAmount : ''}
-            // value={swap_coinDstAmount ? swap_coinDstAmount.toString() : ''}
-          />
-          <label className="text-2xl">{coinPredictAddLiquidy}</label>
-        </div>
-        <button className="w-2/3 h-10 mt-4 border-2 border-blue-500 bg-blue-500 rounded-md" onClick={txZap}>
-          ZAP
-        </button>
       </div>
       <div className="w-4/12 h-1/3 bg-stone-700 rounded-2xl flex flex-col justify-center items-center gap-8 mt-8 mb-8 px-10">
         <label className="text-2xl">RAY/SOL</label>
-        <div id="up" className="w-full flex justify-between items-center gap-4">
-          <label className="text-2xl">Your Liquidity</label>
+        <div id="up" className="w-full flex justify-between items-center">
+          <label className="w-56 text-2xl">Your Liquidity</label>
           <input
             type="number"
-            className="border-2 border-slate-200 rounded-md h-12 text-black text-center bg-white"
+            className="w-32 border-2 border-gray-500 rounded-md h-12 text-white text-center bg-gray-500"
             disabled
-            value={exhibitionInfos && exhibitionInfos.length > 0 ? exhibitionInfos[0].lpMint
-              ? toString(div(rawBalances[String(exhibitionInfos[0].lpMint)], 10 ** exhibitionInfos[0].lpDecimals), {
-                  decimalLength: `auto ${exhibitionInfos[0].lpDecimals}`
-                })
-              : '--': '0'}
+            value={
+              exhibitionInfos && exhibitionInfos.length > 0
+                ? exhibitionInfos[0].lpMint
+                  ? toString(div(rawBalances[String(exhibitionInfos[0].lpMint)], 10 ** exhibitionInfos[0].lpDecimals), {
+                      decimalLength: `auto ${exhibitionInfos[0].lpDecimals}`,
+                    })
+                  : '--'
+                : '--'
+            }
           />
           <label className="text-2xl">LP</label>
         </div>
-        <div id="up" className="w-full flex justify-between items-center gap-4">
-          <label className="text-2xl">Slippage Tolerance</label>
+        <div id="up" className="w-full flex justify-between items-center">
+          <label className="w-56 text-2xl">Slippage Tolerance</label>
           <input
             type="number"
-            className="border-2 border-slate-200 rounded-md h-12 text-black text-center bg-white"
+            className="w-32 border-2 border-gray-500 rounded-md h-12 text-white text-center bg-gray-500"
             disabled
             value={slippageTolerance ? slippageTolerance.toString() : ''}
           />
