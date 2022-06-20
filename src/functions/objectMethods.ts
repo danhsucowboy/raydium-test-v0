@@ -1,3 +1,11 @@
+export function objectFilter<T, K extends string>(
+  obj: Record<K, T> | undefined,
+  callbackFn: (value: T, key: K) => boolean
+): Record<K, T> {
+  //@ts-expect-error why type error?
+  return Object.fromEntries(Object.entries(obj ?? {}).filter(([key, value]) => callbackFn(value, key)))
+}
+
 /**
  * @param target target object
  * @param mapper (value)
@@ -28,4 +36,9 @@ export function replaceValue<T, K extends keyof T, V extends T[K], NewV>(
   const entries = Object.entries(obj)
   const newEntries = entries.map(([key, value]) => (findValue(value, key as any) ? [key, replaceValue] : [key, value]))
   return Object.fromEntries(newEntries)
+}
+
+export function objectShakeNil<T>(obj: T): { [K in keyof T]: NonNullable<T[K]> } {
+  //@ts-expect-error force type
+  return objectFilter(obj, (value) => value !== undefined && value !== null)
 }

@@ -1,9 +1,6 @@
 import type { NextPage } from 'next'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { ChevronsDown, Plus } from 'react-feather'
-import { WalletNotConnectedError } from '@solana/wallet-adapter-base'
-import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { Keypair, SystemProgram, Transaction } from '@solana/web3.js'
 import { useZap } from 'applications/zap/useZap'
 import { useSwapAmountCalculator } from 'hooks/useSwapAmountCalculator'
 import useInitCoinFiller from 'hooks/useInitCoinFiller'
@@ -21,10 +18,12 @@ import useLpTokensLoader from 'applications/token/feature/useLpTokensLoader'
 import useLiquidityAmmSelector from 'applications/liquidity/useLiquidityAmmSelector'
 import useLiquidityAmountCalculator from 'applications/liquidity/useLiquidityAmountCalculator'
 import useAppSettings from 'applications/appSettings/useAppSettings'
+import useInitBalanceRefresher from 'applications/wallet/feature/useBalanceRefresher'
+import { div } from 'functions/numberish/operations'
+import { toString } from 'functions/numberish/toString'
+import useWallet from 'applications/wallet/useWallet'
 
 const Home: NextPage = (props) => {
-  const { connection } = useConnection()
-  const { publicKey, sendTransaction } = useWallet()
   const [inputCoinAmount, setInputCoinAmount] = useState<number>(0)
   const [coinPredictSwap, setCoinPredictSwap] = useState('RAY')
   const [coinPredictAddLiquidy, setCoinPredictAddLiquidy] = useState('SOL')
@@ -38,6 +37,9 @@ const Home: NextPage = (props) => {
   const swap_coinSrcAmount = useZap((s) => s.coinSwapSrcAmount)
   const swap_coinDstAmount = useZap((s) => s.coinSwapDstAmount)
   const slippageTolerance = useAppSettings((s) => s.slippageTolerance)
+  const hydratedInfos = useZap((s) => s.hydratedInfos)
+  const userExhibitionLiquidityIds = useZap((s) => s.userExhibitionLiquidityIds)
+  const rawBalances = useWallet((s) => s.rawBalances)
 
 
   useSlippageTolerenceSyncer()
@@ -48,10 +50,12 @@ const Home: NextPage = (props) => {
   /********************** wallet **********************/
   useSyncWithSolanaWallet()
   useTokenAccountsRefresher()
+  useInitBalanceRefresher()
   useWalletAccountChangeListeners()
-  // useLpTokenMethodsLoad()
+  /********************** token **********************/
   useTokenListsLoader()
   useLpTokensLoader()
+  useLpTokenMethodsLoad()
   useTokenMintAutoRecord()
   useInitCoinFiller()
   useSwapAmountCalculator()
@@ -73,6 +77,11 @@ const Home: NextPage = (props) => {
       })
     }
   }, [inputCoinAmount])
+
+  const exhibitionInfos = useMemo(
+    () => hydratedInfos.filter(({ id }) => userExhibitionLiquidityIds?.includes(String(id))),
+    [hydratedInfos, userExhibitionLiquidityIds]
+  )
 
   return (
     <div className="flex justify-center items-center w-full h-full gap-20">
@@ -133,7 +142,11 @@ const Home: NextPage = (props) => {
             type="number"
             className="border-2 border-slate-200 rounded-md h-12 text-black text-center bg-white"
             disabled
-            value={swap_coinSrcAmount ? swap_coinSrcAmount.toString() : ''}
+            value={exhibitionInfos && exhibitionInfos.length > 0 ? exhibitionInfos[0].lpMint
+              ? toString(div(rawBalances[String(exhibitionInfos[0].lpMint)], 10 ** exhibitionInfos[0].lpDecimals), {
+                  decimalLength: `auto ${exhibitionInfos[0].lpDecimals}`
+                })
+              : '--': '0'}
           />
           <label className="text-2xl">LP</label>
         </div>

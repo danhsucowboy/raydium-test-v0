@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import toPubString from 'functions/toMintString'
-import { PublicKeyish } from 'types/constants'
+import { PublicKeyish } from 'common/pubkey'
 import useToken from 'applications/token/useToken'
 import { SplToken } from 'applications/token/type'
 import { SOLUrlMint, QuantumSOLVersionSOL } from 'applications/token/utils/quantumSOL'
