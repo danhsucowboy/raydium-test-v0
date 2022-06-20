@@ -130,7 +130,10 @@ export default function txZap() {
     assert(String(upCoin.mint) !== String(downCoin.mint), 'should not select same mint ')
     assert(routes, "can't find correct route")
 
+    //zap input
     const inputCoinTokenAmount = toTokenAmount(upCoin, coinInputAmount, { alreadyDecimaled: true })
+    
+    //swap
     const upCoinTokenAmount = toTokenAmount(upCoin, upCoinAmount, { alreadyDecimaled: true })
     const downCoinTokenAmount = toTokenAmount(downCoin, minReceived, { alreadyDecimaled: true })
 
