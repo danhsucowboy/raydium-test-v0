@@ -48,8 +48,6 @@ const getTokenSide = (token: Token, poolKeys: LiquidityPoolKeysV4): AmountSide =
 }
 
 const getTokensSide = (tokenA: Token, tokenB: Token, poolKeys: LiquidityPoolKeysV4): AmountSide[] => {
-  const { baseMint, quoteMint } = poolKeys
-
   const sideA = getTokenSide(tokenA, poolKeys)
   const sideB = getTokenSide(tokenB, poolKeys)
 
@@ -110,9 +108,7 @@ export default function txZap() {
       coinSwapDstAmount,
       coinLiquidityUpAmount,
       routes,
-      // focusSide,
       routeType,
-      // directionReversed,
       minReceived,
       maxSpent,
     } = useZap.getState()
