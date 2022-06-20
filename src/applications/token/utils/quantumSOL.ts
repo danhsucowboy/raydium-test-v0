@@ -12,6 +12,7 @@ import { isToken, isTokenAmount } from 'functions/judgers/dateType'
 
 export const WSOLMint = new PublicKey('So11111111111111111111111111111111111111112')
 export const SOLDecimals = 9
+export const WSOL = new Token(WSOLMint, SOLDecimals, 'WSOL', 'wrapped solana')
 export const SOLUrlMint = 'sol'
 export const SOL = new Currency(SOLDecimals, 'SOL', 'solana')
 
