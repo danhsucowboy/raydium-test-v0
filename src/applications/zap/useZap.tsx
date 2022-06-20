@@ -37,6 +37,7 @@ export type ZapStore = {
 
   coin1?: SplToken
   coin2?: SplToken
+  coinInputAmount?: Numberish
   coinSwapSrcAmount?: Numberish // Numberish // may with fee and slippage
   coinSwapDstAmount?: Numberish //Numberish // may with fee and slippage
 

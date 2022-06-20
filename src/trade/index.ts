@@ -119,7 +119,6 @@ export class Trade {
         addLiquidity_amountInA,
         swap_fixedSide,
         addLiquidity_fixedSide,
-        config,
       })
 
       tradeTransaction = { transaction, signers }

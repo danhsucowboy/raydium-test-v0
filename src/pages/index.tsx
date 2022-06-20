@@ -5,7 +5,6 @@ import { WalletNotConnectedError } from '@solana/wallet-adapter-base'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Keypair, SystemProgram, Transaction } from '@solana/web3.js'
 import { useZap } from 'applications/zap/useZap'
-import useLiquidity from 'applications/liquidity/useLiquidity'
 import { useSwapAmountCalculator } from 'hooks/useSwapAmountCalculator'
 import useInitCoinFiller from 'hooks/useInitCoinFiller'
 import { useLpTokenMethodsLoad } from 'hooks/useLpTokenMethodsLoad'
@@ -40,7 +39,6 @@ const Home: NextPage = (props) => {
   const swap_coinDstAmount = useZap((s) => s.coinSwapDstAmount)
 
   useSlippageTolerenceSyncer()
-  // load liquidity info (jsonInfo, sdkParsedInfo, hydratedInfo)
   useLiquidityInfoLoader()
 
   /********************** connection **********************/
@@ -61,11 +59,13 @@ const Home: NextPage = (props) => {
   useEffect(() => {
     if (inputCoinAmount > 0) {
       useZap.setState({
+        coinInputAmount: inputCoinAmount,
         coinSwapSrcAmount: inputCoinAmount * 0.48,
         // coinLiquidityUpAmount: (inputCoinAmount / 2).toString(),
       })
     } else {
       useZap.setState({
+        coinInputAmount: 0,
         coinSwapSrcAmount: 0,
         // coinLiquidityUpAmount: '',
       })

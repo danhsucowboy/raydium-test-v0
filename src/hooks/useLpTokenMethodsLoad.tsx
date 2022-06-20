@@ -12,9 +12,7 @@ export function useLpTokenMethodsLoad() {
 
   /** NOTE -  getToken place 2 */
   useEffect(() => {
-    console.log('getToken checkout')
     function getToken(mint: PublicKeyish | undefined, options?: { exact?: boolean }): SplToken | undefined {
-      console.log('getToken in function, mint:',String(mint))
       if (String(mint) === SOLUrlMint) {
         return QuantumSOLVersionSOL
       }

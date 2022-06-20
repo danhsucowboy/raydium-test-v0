@@ -13,8 +13,8 @@ const App: FC<AppProps> = ({ Component, pageProps }) => {
   return (
     <>
       <Head>
-        <title>Box: A Raydium Solution</title>
-        <meta name="description" content="Box: A Raydium Solution" />
+        <title>Raydium Zap Test - V0</title>
+        <meta name="description" content="Raydium Zap Test - V0" />
       </Head>
       <ContextProvider>
         <div className="flex flex-col h-screen">

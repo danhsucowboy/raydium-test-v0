@@ -251,9 +251,6 @@ export interface LiquidityZapTransactionParams {
   addLiquidity_amountInA: CurrencyAmount | TokenAmount
   swap_fixedSide: SwapSide
   addLiquidity_fixedSide: LiquiditySide
-  config?: {
-    bypassAssociatedCheck?: boolean
-  }
 }
 
 export interface LiquidityCreatePoolInstructionParamsV4 {
@@ -1111,7 +1108,6 @@ export class Liquidity extends Base {
       addLiquidity_amountInA,
       swap_fixedSide,
       addLiquidity_fixedSide,
-      config,
     } = params
     const addLiquidity_amountInB = swap_amountOut
     const { lpMint } = poolKeys
