@@ -1117,13 +1117,6 @@ export class Liquidity extends Base {
     const { lpMint } = poolKeys
     const { tokenAccounts, owner, payer = owner } = userKeys
 
-    const { bypassAssociatedCheck } = {
-      // default
-      ...{ bypassAssociatedCheck: false },
-      // custom
-      ...config,
-    }
-
     // handle currency in & out (convert SOL to WSOL)
     const swap_tokenIn = swap_amountIn instanceof TokenAmount ? swap_amountIn.token : Token.WSOL
     const swap_tokenOut = swap_amountOut instanceof TokenAmount ? swap_amountOut.token : Token.WSOL
