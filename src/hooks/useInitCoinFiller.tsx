@@ -34,8 +34,6 @@ export default function useInitCoinFiller() {
     }
     if (!coin2 && toPubString(coin1?.mint) !== toPubString(RAYMint)) {
       useZap.setState({ coin2: getToken(RAYMint) })
-      // useZap.setState({ coin2: ETHSpl })
-      console.log('coin2 checkout')
     }
   }, [getToken])
 }

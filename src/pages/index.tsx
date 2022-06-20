@@ -57,13 +57,6 @@ const Home: NextPage = (props) => {
   useSwapAmountCalculator()
   useLiquidityAmmSelector()
   useLiquidityAmountCalculator()
-  // const [coinDownAmount, setCoinDownAmount] = useState<number>(0)
-
-  // useEffect(() => {
-  //   console.log('swap_coinSrcAmount', swap_coinSrcAmount)
-  //   console.log('swap_coinDstAmount', swap_coinDstAmount)
-
-  // },[swap_coinSrcAmount, swap_coinDstAmount])
 
   useEffect(() => {
     if (inputCoinAmount > 0) {
@@ -78,11 +71,6 @@ const Home: NextPage = (props) => {
       })
     }
   }, [inputCoinAmount])
-
-  // const handleZap = async () => {
-  //   const tokenIn = coin1
-  //   const tokenOut = coin2
-  // }
 
   return (
     <div className="flex justify-center items-start mt-28 w-full h-full">

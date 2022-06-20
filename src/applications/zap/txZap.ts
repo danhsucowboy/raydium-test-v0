@@ -73,34 +73,13 @@ export default function txZap() {
       addLiquidity_amountInA: deUITokenAmount(liquidity_coinTokenAmount),
     })
 
-    // const { tradeTransactions } = await Trade.makeZapTransaction_v1({
-    //   connection,
-    //   routes,
-    //   routeType,
-    //   swap_fixedSide: 'in', // TODO: currently  only fixed in
-    //   addLiquidity_fixedSide: 'b', // TODO: currently  only fixed in
-    //   userKeys: { tokenAccounts: tokenAccountRawInfos, owner },
-    //   swap_amountIn: deUITokenAmount(upCoinTokenAmount), // TODO: currently  only fixed upper side
-    //   swap_amountOut: deUITokenAmount(toTokenAmount(downCoin, minReceived, { alreadyDecimaled: true })),
-    //   addLiquidity_amountInA: deUITokenAmount(liquidity_coinTokenAmount),
-    // })
-
-    console.log('setupTransaction', setupTransaction)
-    console.log('tradeTransaction', tradeTransaction)
-    // console.log('v1 tradeTransactions', tradeTransactions)
-
-    console.log('trade check 1')
-
     const signedTransactions = shakeUndifindedItem(
       await asyncMap([setupTransaction, tradeTransaction], (merged) => {
         if (!merged) return
         const { transaction, signers } = merged
-        console.log('trade check 1-1',merged)
         return loadTransaction({ transaction: transaction, signers })
       })
     )
-
-    // console.log('trade check 2')
 
     for (const signedTransaction of signedTransactions) {
       transactionCollector.add(signedTransaction, {
@@ -112,22 +91,5 @@ export default function txZap() {
         },
       })
     }
-
-    console.log('trade check 3')
-    // transactionCollector.add(await loadTransaction(tradeTransaction), {
-    //   txHistoryInfo: {
-    //     title: 'Zap',
-    //     description: `Zap ${toString(upCoinAmount)} ${upCoin.symbol}
-    //     }`,
-    //   },
-    // })
-
-    // transactionCollector.add(await loadTransaction(tradeTransactions.add), {
-    //   txHistoryInfo: {
-    //     title: 'Add liquidity',
-    //     description: `Add ${toString(coinLiquidityUpAmount)} ${coin1.symbol} and ${toString(downCoinAmount)} ${coin2.symbol}`
-    //   }
-    // })
-    // console.log('trade check 3')
   })
 }

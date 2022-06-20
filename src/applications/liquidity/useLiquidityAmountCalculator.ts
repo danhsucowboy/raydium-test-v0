@@ -58,7 +58,6 @@ export default function useLiquidityAmountCalculator() {
       return
     }
     try {
-      console.log('check-1')
       const { amount: pairCoinAmount, unslippagedAmount: unslippagedPairCoinAmount } = await calculatePairTokenAmount({
         coin1,
         userCoin1Amount,

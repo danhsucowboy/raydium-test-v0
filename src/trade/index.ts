@@ -107,7 +107,6 @@ export class Trade {
     let tradeTransaction: UnsignedTransactionAndSigners | null = null
 
     if (routeType === 'amm') {
-      console.log('check amm')
 
       const { keys } = routes[0]
 
@@ -160,7 +159,6 @@ export class Trade {
     let tradeTransaction: UnsignedTransactionAndSigners | null = null
 
     if (routeType === 'amm') {
-      console.log('check amm')
 
       const { keys } = routes[0]
 
@@ -221,7 +219,6 @@ export class Trade {
     let tradeTransactions: Record<string, UnsignedTransactionAndSigners> = {}
 
     if (routeType === 'amm') {
-      console.log('check amm')
 
       const { keys } = routes[0]
 
@@ -298,7 +295,6 @@ export class Trade {
       for (const { poolKeys, poolInfo } of _pools) {
         // * if currencies not match with pool, will throw error
         try {
-          // console.log('check amm')
           const { amountOut, minAmountOut, currentPrice, executionPrice, priceImpact, fee } =
             Liquidity.computeAmountOut({
               poolKeys,
@@ -307,9 +303,6 @@ export class Trade {
               currencyOut,
               slippage,
             })
-
-          // console.log('amm amountOut: ', toUITokenAmount(amountOut).toExact())
-          // console.log('amm minAmountOut: ', toUITokenAmount(minAmountOut).toExact())
 
           if (amountOut.gt(_amountOut)) {
             routes = [
@@ -327,8 +320,6 @@ export class Trade {
             _fee = [fee]
           }
         } catch (error) {
-          // console.log('check amm error', error)
-          //
         }
       }
     }
@@ -346,7 +337,6 @@ export class Trade {
 
         // * if currencies not match with pool, will throw error
         try {
-          // console.log('check route')
           const { amountOut, minAmountOut, executionPrice, priceImpact, fee } = Route.computeAmountOut({
             fromPoolKeys,
             toPoolKeys,
@@ -356,9 +346,6 @@ export class Trade {
             currencyOut,
             slippage,
           })
-
-          // console.log('route amountOut: ', toUITokenAmount(amountOut).toExact())
-          // console.log('route minAmountOut: ', toUITokenAmount(minAmountOut).toExact())
 
           if (amountOut.gt(_amountOut)) {
             routes = [
@@ -379,8 +366,6 @@ export class Trade {
             _fee = fee
           }
         } catch (error) {
-          //
-          // console.log('check route error', error)
         }
       }
     }

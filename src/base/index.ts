@@ -100,7 +100,6 @@ export class Base {
       if (endInstructions) {
         endInstructions.push(Spl.makeCloseAccountInstruction({ tokenAccount: newTokenAccount, owner, payer }));
       }
-      console.log('return newTokenAccount')
       return newTokenAccount;
     } else if (!tokenAccount || (side === "out" && !ata.equals(tokenAccount) && !bypassAssociatedCheck)) {
       frontInstructions.push(
@@ -111,10 +110,8 @@ export class Base {
           payer,
         }),
       );
-      console.log('return ata')
       return ata;
     }
-    console.log('return tokenAccount')
     return tokenAccount;
   }
 }

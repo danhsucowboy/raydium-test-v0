@@ -1182,8 +1182,6 @@ export class Liquidity extends Base {
     const frontInstructions: TransactionInstruction[] = []
     const endInstructions: TransactionInstruction[] = []
     const signers: Signer[] = []
-
-    console.log('_tokenAccountIn')
     const _tokenAccountIn = await Spl.insertCreateWrappedNativeAccountInstructions({
       connection,
       owner,
@@ -1194,11 +1192,6 @@ export class Liquidity extends Base {
     });
     endInstructions.push(Spl.makeCloseAccountInstruction({ tokenAccount: swap_tokenAccountIn, owner, payer }));
     
-    console.log('Swap In:',amountInRaw.toNumber()/10**9, 'SOL')
-    console.log('Swap Out:',amountOutRaw.toNumber()/10**6, 'RAY')
-    console.log('Add In A:',quoteAmountRaw.toNumber()/10**9, 'SOL')
-    console.log('Add In B:',baseAmountRaw.toNumber()/10**6, 'RAY')
-
     frontInstructions.push(
       this.makeSwapInstruction({
         poolKeys,
@@ -1777,14 +1770,10 @@ export class Liquidity extends Base {
     pools,
     config,
   }: LiquidityFetchMultipleInfoParams): Promise<LiquidityPoolInfo[]> {
-    // await initStableModelLayout(connection)
-    // console.log('check-3')
 
     const instructions = pools.map((pool) => this.makeSimulatePoolInfoInstruction({ poolKeys: pool }))
-    // console.log('instructions: ', instructions)
 
     const logs = await simulateMultipleInstruction(connection, instructions, 'GetPoolData')
-    // console.log('logs: ', logs)
 
     const poolsInfo = logs.map((log) => {
       const json = parseSimulateLogToJson(log, 'GetPoolData')

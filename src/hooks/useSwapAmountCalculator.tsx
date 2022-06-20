@@ -55,7 +55,6 @@ export function useSwapAmountCalculator() {
   useAsyncEffect(async () => {
     // pairInfo is not enough
     if (!upCoin || !downCoin || !connection) {
-      console.log('check pairInfo is not enough')
       useZap.setState({
         fee: undefined,
         minReceived: undefined,
@@ -67,11 +66,6 @@ export function useSwapAmountCalculator() {
       })
       return
     }
-
-    // console.log('upCoin: ', upCoin)
-    // console.log('downCoin: ', downCoin)
-    // console.log('connection: ', connection)
-
     const focusDirectionSide = 'up'
 
     try {
@@ -85,7 +79,6 @@ export function useSwapAmountCalculator() {
         slippageTolerance,
       })
       // for calculatePairTokenAmount is async, result maybe droped. if that, just stop it
-      // console.log('calcResult: ', calcResult)
 
       const resultStillFresh = (() => {
         const currentUpCoinAmount = useZap.getState().coinSwapSrcAmount || '0'
@@ -97,12 +90,8 @@ export function useSwapAmountCalculator() {
       if (!resultStillFresh) return
 
       if (focusDirectionSide === 'up') {
-        // console.log('calcResult', calcResult)
         const { routes, priceImpact, executionPrice, currentPrice, swapable, routeType, fee } = calcResult ?? {}
         const { amountOut, minAmountOut } = (calcResult?.info ?? {}) as { amountOut?: string; minAmountOut?: string }
-        // console.log('amountOut: ', amountOut)
-        // console.log('minAmountOut: ', minAmountOut)
-
         useZap.setState({
           fee,
           routes,
@@ -187,39 +176,22 @@ async function calculatePairTokenAmount({
 }): Promise<SwapCalculatorInfo | undefined> {
   const upCoinTokenAmount = toTokenAmount(upCoin, upCoinAmount, { alreadyDecimaled: true })
   const downCoinTokenAmount = toTokenAmount(downCoin, downCoinAmount, { alreadyDecimaled: true })
-
-  // console.log('upCoinTokenAmount: ', upCoinTokenAmount)
-  // console.log('downCoinTokenAmount: ', downCoinTokenAmount)
-
   const { routeRelated: jsonInfos } = await useZap.getState().findLiquidityInfoByTokenMint(upCoin.mint, downCoin.mint)
-
-  // console.log('jsonInfos: ', jsonInfos)
 
   if (jsonInfos.length) {
     const key = jsonInfos.map((jsonInfo) => jsonInfo.id).join('-')
     const sdkParsedInfos = await (async () => {
-      // console.log('check-1')
 
       const sdkParsed = await sdkParseJsonLiquidityInfo(jsonInfos, connection)
-      // console.log('sdkParsed: ', sdkParsed)
 
       sdkParsedInfoCache.set(key, sdkParsed)
       return sdkParsed
     })()
 
-    // console.log('sdkParsedInfoCache.get(key)!: ', sdkParsedInfoCache.get(key)!)
-    // console.log('sdkParsedInfos: ', sdkParsedInfos)
-
     const pools = jsonInfos.map((jsonInfo, idx) => ({
       poolKeys: jsonInfo2PoolKeys(jsonInfo),
       poolInfo: sdkParsedInfos[idx],
     }))
-
-    // console.log('pools: ', pools)
-    // console.log('deUIToken(downCoin): ', deUIToken(downCoin))
-    // console.log('deUITokenAmount(upCoinTokenAmount): ', deUITokenAmount(upCoinTokenAmount))
-    // console.log('toPercent(slippageTolerance): ', toPercent(slippageTolerance))
-
 
     const { amountOut, minAmountOut, executionPrice, currentPrice, priceImpact, routes, routeType, fee } =
       Trade.getBestAmountOut({
@@ -228,8 +200,6 @@ async function calculatePairTokenAmount({
         amountIn: deUITokenAmount(upCoinTokenAmount),
         slippage: toPercent(slippageTolerance),
       })
-      // console.log('amountOut: ', toUITokenAmount(amountOut).toExact())
-      // console.log('minAmountOut: ', toUITokenAmount(minAmountOut).toExact())
 
     const sdkParsedInfoMap = new Map(sdkParsedInfos.map((info) => [toPubString(info.id), info]))
     const choosedSdkParsedInfos = shakeUndifindedItem(
