@@ -4,6 +4,7 @@ import { TokenAmount } from 'entity/amount'
 import { Adapter, WalletName } from '@solana/wallet-adapter-base'
 import { Wallet } from '@solana/wallet-adapter-react'
 import { Keypair,PublicKey, Transaction } from '@solana/web3.js'
+import { WalletAdapter, SignerWalletAdapter, MessageSignerWalletAdapter } from '@solana/wallet-adapter-base'
 
 import BN from 'bn.js'
 import create from 'zustand'
@@ -21,8 +22,9 @@ export type WalletStore = {
   // owner
   owner: PublicKey | undefined
   /** old version of currentWallet */
-  adapter?: Adapter
-
+  // adapter?: Adapter
+  wallets: Wallet[]
+  adapter?: WalletAdapter | SignerWalletAdapter | MessageSignerWalletAdapter | null
   // a experimental feature (owner isn't in shadowOwners)
   /** each Keypair object hold both publicKey and secret key */
   shadowKeypairs?: Keypair[]
@@ -107,6 +109,7 @@ export type WalletStore = {
 const useWallet = create<WalletStore>((set, get) => ({
   // owner
   owner: undefined,
+  wallets: [],
   availableWallets: [],
   connected: false,
   disconnecting: false,
