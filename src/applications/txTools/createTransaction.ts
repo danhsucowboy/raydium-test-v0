@@ -1,4 +1,4 @@
-import { Signer, Transaction, TransactionInstruction } from '@solana/web3.js'
+import { Signer, Transaction, TransactionInstruction, PublicKey } from '@solana/web3.js'
 
 import { attachRecentBlockhash } from './attachRecentBlockhash'
 
@@ -51,7 +51,6 @@ export const createTransactionCollector = (defaultRawTransaction?: Transaction):
 const partialSignTransacion = async (transaction: Transaction, signers?: Signer[]): Promise<Transaction> => {
   if (signers?.length) {
     await attachRecentBlockhash(transaction)
-
     transaction.partialSign(...signers)
 
     return transaction

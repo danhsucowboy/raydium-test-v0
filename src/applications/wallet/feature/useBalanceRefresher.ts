@@ -67,7 +67,6 @@ export function parseBalanceFromTokenAccount({
   const tokenAccounts = allTokenAccounts.filter((ta) => ta.isAssociated || ta.isNative)
   function toPureBalance(tokenAccount: ITokenAccount) {
     const tokenInfo = getPureToken(tokenAccount.mint)
-    // console.log('tokenAccount: ', tokenAccount)
     if (!tokenInfo) return undefined
     return new TokenAmount(tokenInfo, tokenAccount.amount)
   }

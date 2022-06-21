@@ -132,7 +132,7 @@ export default function txZap() {
 
     //zap input
     const inputCoinTokenAmount = toTokenAmount(upCoin, coinInputAmount, { alreadyDecimaled: true })
-    
+
     //swap
     const upCoinTokenAmount = toTokenAmount(upCoin, upCoinAmount, { alreadyDecimaled: true })
     const downCoinTokenAmount = toTokenAmount(downCoin, minReceived, { alreadyDecimaled: true })
@@ -223,7 +223,7 @@ export default function txZap() {
       signers,
       amount: inputCoinTokenAmount.raw, //amountInRaw.add(quoteAmountRaw),
     })
-    endInstructions.push(Spl.makeCloseAccountInstruction({ tokenAccount: swap_tokenAccountIn, owner, payer }))
+    endInstructions.push(Spl.makeCloseAccountInstruction({ tokenAccount: _tokenAccountIn, owner, payer }))
 
     frontInstructions.push(
       Liquidity.makeSwapInstruction({
@@ -253,7 +253,7 @@ export default function txZap() {
 
     const transaction = new Transaction()
     transaction.add(...[...frontInstructions, ...endInstructions])
-
+    
     tradeTransaction = { transaction, signers }
 
     const signedTransactions = shakeUndifindedItem(
