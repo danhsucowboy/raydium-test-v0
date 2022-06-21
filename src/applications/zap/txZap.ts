@@ -11,9 +11,9 @@ import handleMultiTx from '../txTools/handleMultiTx'
 import useWallet from '../wallet/useWallet'
 
 import { useZap } from './useZap'
-import { deUITokenAmount, toUITokenAmount } from '../token/utils/quantumSOL'
+import { deUITokenAmount } from '../token/utils/quantumSOL'
 import { shakeUndifindedItem } from 'functions/arrayMethods'
-import { Liquidity, AmountSide, LiquidityPoolKeysV4 } from 'liquidity'
+import { AmountSide, LiquidityPoolKeysV4 } from 'liquidity'
 import { UnsignedTransactionAndSigners } from 'base'
 import { TokenAmount } from 'entity/amount'
 import { Spl } from 'spl'
@@ -26,8 +26,6 @@ import {
   AccountMeta,
   AccountMetaReadonly,
   TOKEN_PROGRAM_ID,
-  SYSTEM_PROGRAM_ID,
-  SYSVAR_RENT_PUBKEY,
 } from 'common/pubkey'
 interface TokenAccount {
   pubkey: PublicKey
