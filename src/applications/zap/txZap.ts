@@ -20,7 +20,15 @@ import { Spl } from 'spl'
 import { Token } from 'entity/currency'
 import { SplAccount } from 'spl/layout'
 import { CurrencyAmount } from 'entity/amount'
-
+import { BigNumberish, parseBigNumberish } from 'entity/bignumber'
+import { struct, u64, u8 } from 'marshmallow'
+import {
+  AccountMeta,
+  AccountMetaReadonly,
+  TOKEN_PROGRAM_ID,
+  SYSTEM_PROGRAM_ID,
+  SYSVAR_RENT_PUBKEY,
+} from 'common/pubkey'
 interface TokenAccount {
   pubkey: PublicKey
   accountInfo: SplAccount
@@ -30,6 +38,31 @@ interface SelectTokenAccountParams {
   mint: PublicKey
   owner: PublicKey
   config?: { associatedOnly?: boolean }
+}
+
+export interface SwapFixedOutInstructionParams {
+  poolKeys: LiquidityPoolKeysV4
+  userKeys: {
+    tokenAccountIn: PublicKey
+    tokenAccountOut: PublicKey
+    owner: PublicKey
+  }
+  // maximum amount in
+  maxAmountIn: BigNumberish
+  minAmountOut: BigNumberish
+}
+
+export interface LiquidityAddInstructionParams {
+  poolKeys: LiquidityPoolKeysV4
+  userKeys: {
+    baseTokenAccount: PublicKey
+    quoteTokenAccount: PublicKey
+    lpTokenAccount: PublicKey
+    owner: PublicKey
+  }
+  baseAmountIn: BigNumberish
+  quoteAmountIn: BigNumberish
+  fixedSide: AmountSide
 }
 
 const getTokenSide = (token: Token, poolKeys: LiquidityPoolKeysV4): AmountSide => {
@@ -95,6 +128,108 @@ const selectTokenAccount = async (params: SelectTokenAccountParams) => {
   }
 
   return null
+}
+
+function makeSwapFixedInInstruction(
+  { poolKeys, userKeys, maxAmountIn, minAmountOut }: SwapFixedOutInstructionParams,
+  version: number
+) {
+  const LAYOUT = struct([u8('instruction'), u64('amountIn'), u64('minAmountOut')])
+  const data = Buffer.alloc(LAYOUT.span)
+  LAYOUT.encode(
+    {
+      instruction: 9,
+      amountIn: parseBigNumberish(maxAmountIn),
+      minAmountOut: parseBigNumberish(minAmountOut),
+    },
+    data
+  )
+
+  const keys = [
+    // system
+    AccountMetaReadonly(TOKEN_PROGRAM_ID, false),
+    // amm
+    AccountMeta(poolKeys.id, false),
+    AccountMetaReadonly(poolKeys.authority, false),
+    AccountMeta(poolKeys.openOrders, false),
+  ]
+
+  if (version === 4) {
+    keys.push(AccountMeta(poolKeys.targetOrders, false))
+  }
+
+  keys.push(AccountMeta(poolKeys.baseVault, false), AccountMeta(poolKeys.quoteVault, false))
+
+  keys.push(
+    // serum
+    AccountMetaReadonly(poolKeys.marketProgramId, false),
+    AccountMeta(poolKeys.marketId, false),
+    AccountMeta(poolKeys.marketBids, false),
+    AccountMeta(poolKeys.marketAsks, false),
+    AccountMeta(poolKeys.marketEventQueue, false),
+    AccountMeta(poolKeys.marketBaseVault, false),
+    AccountMeta(poolKeys.marketQuoteVault, false),
+    AccountMetaReadonly(poolKeys.marketAuthority, false),
+    // user
+    AccountMeta(userKeys.tokenAccountIn, false),
+    AccountMeta(userKeys.tokenAccountOut, false),
+    AccountMetaReadonly(userKeys.owner, true)
+  )
+
+  return new TransactionInstruction({
+    programId: poolKeys.programId,
+    keys,
+    data,
+  })
+}
+
+function makeAddLiquidityInstruction(params: LiquidityAddInstructionParams) {
+  const { poolKeys, userKeys, baseAmountIn, quoteAmountIn, fixedSide } = params
+  const { version } = poolKeys
+
+  if (version === 4 || version === 5) {
+    const LAYOUT = struct([u8('instruction'), u64('baseAmountIn'), u64('quoteAmountIn'), u64('fixedSide')])
+    const data = Buffer.alloc(LAYOUT.span)
+    LAYOUT.encode(
+      {
+        instruction: 3,
+        baseAmountIn: parseBigNumberish(baseAmountIn),
+        quoteAmountIn: parseBigNumberish(quoteAmountIn),
+        fixedSide: parseBigNumberish(fixedSide === 'base' ? 0 : 1),
+      },
+      data
+    )
+
+    const keys = [
+      // system
+      AccountMetaReadonly(TOKEN_PROGRAM_ID, false),
+      // amm
+      AccountMeta(poolKeys.id, false),
+      AccountMetaReadonly(poolKeys.authority, false),
+      AccountMetaReadonly(poolKeys.openOrders, false),
+      AccountMeta(poolKeys.targetOrders, false),
+      AccountMeta(poolKeys.lpMint, false),
+      AccountMeta(poolKeys.baseVault, false),
+      AccountMeta(poolKeys.quoteVault, false),
+    ]
+
+    keys.push(
+      // serum
+      AccountMetaReadonly(poolKeys.marketId, false),
+      // user
+      AccountMeta(userKeys.baseTokenAccount, false),
+      AccountMeta(userKeys.quoteTokenAccount, false),
+      AccountMeta(userKeys.lpTokenAccount, false),
+      AccountMetaReadonly(userKeys.owner, true)
+    )
+
+    return new TransactionInstruction({
+      programId: poolKeys.programId,
+      keys,
+      data,
+    })
+  }
+  throw Error(`invalid version: ${version}`)
 }
 
 export default function txZap() {
@@ -226,18 +361,20 @@ export default function txZap() {
     endInstructions.push(Spl.makeCloseAccountInstruction({ tokenAccount: _tokenAccountIn, owner, payer }))
 
     frontInstructions.push(
-      Liquidity.makeSwapInstruction({
-        poolKeys: routes[0].keys,
-        userKeys: {
-          tokenAccountIn: _tokenAccountIn,
-          tokenAccountOut: swap_tokenAccountOut,
-          owner,
+      makeSwapFixedInInstruction(
+        {
+          poolKeys: routes[0].keys,
+          userKeys: {
+            tokenAccountIn: _tokenAccountIn,
+            tokenAccountOut: swap_tokenAccountOut,
+            owner,
+          },
+          maxAmountIn: amountInRaw,
+          minAmountOut: amountOutRaw,
         },
-        amountIn: amountInRaw,
-        amountOut: amountOutRaw,
-        fixedSide: 'in',
-      }),
-      Liquidity.makeAddLiquidityInstruction({
+        routes[0].keys.version
+      ),
+      makeAddLiquidityInstruction({
         poolKeys: routes[0].keys,
         userKeys: {
           baseTokenAccount: baseTokenAccount,
@@ -253,7 +390,7 @@ export default function txZap() {
 
     const transaction = new Transaction()
     transaction.add(...[...frontInstructions, ...endInstructions])
-    
+
     tradeTransaction = { transaction, signers }
 
     const signedTransactions = shakeUndifindedItem(
